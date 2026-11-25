@@ -7,14 +7,14 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="ストレス解消" />
   <meta name="theme-color" content="#fff6e9" />
-  <title>ボコッと＆ブシャーッ！ストレス解消アプリ</title>
+  <title>ボコッと＆ブシャーッ＆ベシャッ！ストレス解消アプリ</title>
   <link id="app-icon" rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23fff3df'/%3E%3Cellipse cx='90' cy='80' rx='52' ry='62' fill='%23ff5a5f'/%3E%3Cellipse cx='72' cy='58' rx='12' ry='22' transform='rotate(-20 72 58)' fill='rgba(255,255,255,0.45)'/%3E%3Cpolygon points='82,140 98,140 90,150' fill='%23ff5a5f'/%3E%3Ccircle cx='74' cy='78' r='6' fill='%232b2d42'/%3E%3Ccircle cx='106' cy='78' r='6' fill='%232b2d42'/%3E%3Cpath d='M78 98 Q90 108 102 98' stroke='%232b2d42' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" />
   <style>
     :root {
       --bg-top: #fff9ef;
       --bg-bottom: #ffe8cc;
       --ink: #2b2d42;
-      --panel-bg: rgba(255, 255, 255, 0.85);
+      --panel-bg: rgba(255, 255, 255, 0.86);
       --panel-border: rgba(43, 45, 66, 0.13);
       --accent: #ff595e;
       --accent-blue: #1982c4;
@@ -54,6 +54,11 @@
       --bg-bottom: #d4f1ff;
     }
 
+    body.mode-gum {
+      --bg-top: #fff2f8;
+      --bg-bottom: #ffe0ef;
+    }
+
     /* 背景のポップなドット模様 */
     .bg-dots {
       position: fixed;
@@ -67,6 +72,11 @@
     body.mode-soda .bg-dots {
       background-image: radial-gradient(#48bfe3 1.7px, transparent 1.7px);
       opacity: 0.28;
+    }
+
+    body.mode-gum .bg-dots {
+      background-image: radial-gradient(#ff758f 1.7px, transparent 1.7px);
+      opacity: 0.24;
     }
 
     /* 限界時の赤いビネット演出 */
@@ -97,7 +107,7 @@
       top: 0;
       left: 0;
       right: 0;
-      padding: calc(env(safe-area-inset-top, 0px) + 10px) 14px 8px;
+      padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 8px;
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -116,7 +126,7 @@
     .stats-bar {
       display: inline-flex;
       align-items: center;
-      gap: 11px;
+      gap: 10px;
       background: var(--panel-bg);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
@@ -192,14 +202,13 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 8px;
       width: 100%;
     }
 
     .char-switcher {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 3px;
       background: var(--panel-bg);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
@@ -208,6 +217,7 @@
       padding: 4px;
       box-shadow: 0 4px 12px rgba(43, 45, 66, 0.08);
       pointer-events: auto;
+      max-width: 100%;
     }
 
     .char-tab {
@@ -215,14 +225,14 @@
       background: transparent;
       color: rgba(43, 45, 66, 0.68);
       font-family: inherit;
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 800;
-      padding: 6px 14px;
+      padding: 6px 11px;
       border-radius: 999px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
       transition: background-color 0.18s ease, color 0.18s ease, transform 0.12s ease;
       white-space: nowrap;
     }
@@ -237,8 +247,8 @@
       box-shadow: 0 2px 6px rgba(43, 45, 66, 0.22);
     }
 
-    /* 炭酸ボトル専用：投入メントス数＆噴射パワーバッジ */
-    .mentos-hud {
+    /* キャラ固有の補助バッジ（メントス数／ガム増量数） */
+    .sub-hud {
       display: none;
       align-self: center;
       align-items: center;
@@ -254,26 +264,26 @@
       transition: transform 0.12s ease, border-color 0.15s ease, background-color 0.15s ease;
     }
 
-    .mentos-hud.visible {
+    .sub-hud.visible {
       display: inline-flex;
     }
 
-    .mentos-hud.level-mid {
+    .sub-hud.level-mid {
       border-color: #ff9f1c;
       background: #fff8e8;
     }
 
-    .mentos-hud.level-high {
+    .sub-hud.level-high {
       border-color: #ff2e4c;
       background: #ffe8ec;
       color: #c9184a;
     }
 
-    .mentos-hud.pop {
+    .sub-hud.pop {
       transform: scale(1.12);
     }
 
-    .mentos-power-tag {
+    .sub-power-tag {
       font-size: 11px;
       padding: 2px 7px;
       border-radius: 999px;
@@ -281,11 +291,11 @@
       color: #fff;
     }
 
-    .mentos-hud.level-mid .mentos-power-tag {
+    .sub-hud.level-mid .sub-power-tag {
       background: #f77f00;
     }
 
-    .mentos-hud.level-high .mentos-power-tag {
+    .sub-hud.level-high .sub-power-tag {
       background: #ff2e4c;
     }
 
@@ -374,14 +384,14 @@
       font-size: 12px;
       font-weight: 700;
       color: rgba(43, 45, 66, 0.72);
-      background: rgba(255, 255, 255, 0.65);
+      background: rgba(255, 255, 255, 0.68);
       padding: 5px 14px;
       border-radius: 999px;
       letter-spacing: 0.02em;
       text-align: center;
     }
 
-    /* 破裂・噴射後のオーバーレイメッセージ＆復活案内 */
+    /* 破裂・噴射・ベシャッ後のオーバーレイメッセージ */
     #burst-overlay {
       position: fixed;
       inset: 0;
@@ -398,35 +408,41 @@
       text-align: center;
     }
 
+    /* 顔やボトルを隠さない下部寄り配置モード（風船ガム用） */
+    #burst-overlay.pos-bottom {
+      justify-content: flex-end;
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 114px);
+    }
+
     #burst-overlay.visible {
       opacity: 1;
       transform: scale(1);
     }
 
     .burst-badge {
-      background: rgba(255, 255, 255, 0.95);
+      background: rgba(255, 255, 255, 0.94);
       border: 4px solid var(--ink);
-      border-radius: 26px;
-      padding: 18px 26px;
-      box-shadow: 0 10px 0 rgba(43, 45, 66, 0.16);
+      border-radius: 24px;
+      padding: 15px 24px;
+      box-shadow: 0 9px 0 rgba(43, 45, 66, 0.16);
       max-width: 88vw;
     }
 
     .burst-onomatopoeia {
-      font-size: 40px;
+      font-size: 36px;
       font-weight: 900;
       color: #ff2e4c;
       line-height: 1.08;
       letter-spacing: 0.03em;
       text-shadow: 2px 2px 0 #ffd166;
-      margin-bottom: 6px;
+      margin-bottom: 5px;
     }
 
     .burst-message {
-      font-size: 18px;
+      font-size: 16.5px;
       font-weight: 800;
       color: var(--ink);
-      margin-bottom: 14px;
+      margin-bottom: 12px;
       line-height: 1.35;
     }
 
@@ -434,9 +450,9 @@
       display: inline-block;
       background: #ff595e;
       color: #fff;
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 800;
-      padding: 9px 18px;
+      padding: 8px 18px;
       border-radius: 999px;
       box-shadow: 0 4px 0 #c93338;
       animation: bounceCta 1.1s ease-in-out infinite;
@@ -481,14 +497,14 @@
       <div id="char-switcher" class="char-switcher" role="tablist" aria-label="キャラクター選択"></div>
     </div>
 
-    <!-- 炭酸ボトル用：投入メントス数バッジ -->
-    <div id="mentos-hud" class="mentos-hud" aria-live="polite">
-      <span>🍬 メントス × <strong id="mentos-current">0</strong></span>
-      <span id="mentos-power-tag" class="mentos-power-tag">ノーマル</span>
+    <!-- キャラ固有の補助バッジ（メントス数／ガム増量数） -->
+    <div id="sub-hud" class="sub-hud" aria-live="polite">
+      <span id="sub-hud-text">🍬 メントス × 0</span>
+      <span id="sub-power-tag" class="sub-power-tag">ノーマル</span>
     </div>
   </header>
 
-  <!-- 破裂・噴射時のコミカルなメッセージ＆ワンタップ復活案内 -->
+  <!-- 破裂・噴射・ベシャッ時のコミカルなメッセージ＆ワンタップ復活案内 -->
   <div id="burst-overlay" aria-live="polite">
     <div class="burst-badge">
       <div id="burst-onomatopoeia" class="burst-onomatopoeia">パンッ!!</div>
@@ -592,7 +608,7 @@
           } catch (_) {}
         },
 
-        // 【風船】「殴る」コミカルな音（ドスッ＋ボヨンッ）
+        // 【風船】「殴る」音
         playPunch(pitchBase = 1.0) {
           if (!this.enabled) return;
           const ctx = this.ensureContext();
@@ -636,7 +652,7 @@
           }
         },
 
-        // 【風船】「つねる・ゴムがきしむ」パルス音
+        // 【風船】つねりきしみ音
         playPinchCreak(tension) {
           if (!this.enabled) return;
           const ctx = this.ensureContext();
@@ -736,7 +752,7 @@
           sub.stop(now + 0.2);
         },
 
-        // 【炭酸ボトル】メントス投入音「ポチャン！シュワァ！」
+        // 【炭酸ボトル】メントス投入音
         playMentosDrop(count) {
           if (!this.enabled) return;
           const ctx = this.ensureContext();
@@ -744,7 +760,6 @@
           const now = ctx.currentTime;
           const pitchBoost = 1 + Math.min(count, 15) * 0.04;
 
-          // ポチャン（水滴ピッチ上昇）
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = "sine";
@@ -760,7 +775,6 @@
           osc.start(now);
           osc.stop(now + 0.13);
 
-          // 直後のシュワァ！発泡音
           if (this.noiseBuffer) {
             const noise = ctx.createBufferSource();
             noise.buffer = this.noiseBuffer;
@@ -784,14 +798,13 @@
           }
         },
 
-        // 【炭酸ボトル】振る音「シャカッ！シュワ！」
+        // 【炭酸ボトル】振る音
         playShakeSlosh(tension) {
           if (!this.enabled) return;
           const ctx = this.ensureContext();
           if (!ctx) return;
           const now = ctx.currentTime;
 
-          // 液体のシャカッ（バンドパスノイズ）
           if (this.noiseBuffer) {
             const noise = ctx.createBufferSource();
             noise.buffer = this.noiseBuffer;
@@ -816,7 +829,6 @@
             noise.stop(now + 0.095);
           }
 
-          // ボトルの軽いコポッ感
           const thump = ctx.createOscillator();
           const tGain = ctx.createGain();
           thump.type = "triangle";
@@ -830,7 +842,7 @@
           thump.stop(now + 0.065);
         },
 
-        // 【炭酸ボトル】途中で振るのをやめたときの「プシュー…」
+        // 【炭酸ボトル】途中で振るのをやめた音
         playFizzCalm(tension) {
           if (!this.enabled || !this.noiseBuffer) return;
           const ctx = this.ensureContext();
@@ -854,7 +866,7 @@
           noise.stop(now + 0.27);
         },
 
-        // 【炭酸ボトル】噴射音「ポンッ!! ブシャーーーッ!!」（メントス数でスケールアップ）
+        // 【炭酸ボトル】大噴射音
         playErupt(mentosCount) {
           if (!this.enabled) return;
           const ctx = this.ensureContext();
@@ -863,7 +875,6 @@
           const power = clamp(mentosCount / 10, 0, 1.5);
           const sprayDur = 1.05 + Math.min(mentosCount, 12) * 0.11;
 
-          // 1. キャップが吹き飛ぶ「ポンッ!!」
           const pop = ctx.createOscillator();
           const popGain = ctx.createGain();
           pop.type = "sine";
@@ -876,7 +887,6 @@
           pop.start(now);
           pop.stop(now + 0.12);
 
-          // 2. 豪快な噴射ジェットノイズ「ブシャーーーッ!!」
           if (this.noiseBuffer) {
             const noise = ctx.createBufferSource();
             noise.buffer = this.noiseBuffer;
@@ -902,7 +912,6 @@
             noise.stop(now + sprayDur + 0.05);
           }
 
-          // 3. メントスが多いときの低音ゴゴゴ衝撃
           if (mentosCount >= 3) {
             const sub = ctx.createOscillator();
             const subGain = ctx.createGain();
@@ -924,6 +933,206 @@
             sub.start(now);
             sub.stop(now + 0.8);
           }
+        },
+
+        // 【風船ガム】噛む・ガム追加音「クチャッ！モグッ！」
+        playGumChew(count) {
+          if (!this.enabled) return;
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          const now = ctx.currentTime;
+          const boost = 1 + Math.min(count, 10) * 0.03;
+
+          // 弾力のある噛み音（ぷにゅっ）
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(220 * boost, now);
+          osc.frequency.exponentialRampToValueAtTime(380 * boost, now + 0.05);
+          osc.frequency.exponentialRampToValueAtTime(175 * boost, now + 0.11);
+
+          gain.gain.setValueAtTime(0.001, now);
+          gain.gain.linearRampToValueAtTime(0.26, now + 0.015);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.13);
+
+          // 小さな「クチャッ」粘着リップノイズ
+          if (this.noiseBuffer) {
+            const noise = ctx.createBufferSource();
+            noise.buffer = this.noiseBuffer;
+            const filter = ctx.createBiquadFilter();
+            filter.type = "bandpass";
+            filter.frequency.setValueAtTime(1400, now + 0.02);
+            filter.frequency.exponentialRampToValueAtTime(650, now + 0.08);
+            filter.Q.value = 3.5;
+
+            const nGain = ctx.createGain();
+            nGain.gain.setValueAtTime(0.001, now + 0.02);
+            nGain.gain.linearRampToValueAtTime(0.16, now + 0.035);
+            nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+
+            noise.connect(filter);
+            filter.connect(nGain);
+            nGain.connect(ctx.destination);
+            noise.start(now + 0.02);
+            noise.stop(now + 0.1);
+          }
+        },
+
+        // 【風船ガム】膨らませる音「フーーッ…ぷくぅ…」
+        playGumInflate(tension) {
+          if (!this.enabled) return;
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          const now = ctx.currentTime;
+
+          // 息を吹き込むやわらかい空気音
+          if (this.noiseBuffer) {
+            const noise = ctx.createBufferSource();
+            noise.buffer = this.noiseBuffer;
+            const filter = ctx.createBiquadFilter();
+            filter.type = "bandpass";
+            filter.frequency.setValueAtTime(900 + tension * 1400, now);
+            filter.Q.value = 2.6;
+
+            const nGain = ctx.createGain();
+            nGain.gain.setValueAtTime(0.001, now);
+            nGain.gain.linearRampToValueAtTime(0.09 + tension * 0.07, now + 0.03);
+            nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+            noise.connect(filter);
+            filter.connect(nGain);
+            nGain.connect(ctx.destination);
+            noise.start(now);
+            noise.stop(now + 0.15);
+          }
+
+          // ガム膜が張っていく「ぷくぅ〜」音
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "triangle";
+          const baseF = 210 + tension * 460;
+          osc.frequency.setValueAtTime(baseF, now);
+          osc.frequency.exponentialRampToValueAtTime(baseF * 1.16, now + 0.11);
+
+          gain.gain.setValueAtTime(0.001, now);
+          gain.gain.linearRampToValueAtTime(0.08 + tension * 0.09, now + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.13);
+        },
+
+        // 【風船ガム】途中で離したときの「シュルルッ！ポン！」
+        playGumDeflate(tension) {
+          if (!this.enabled) return;
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          const now = ctx.currentTime;
+
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(420 + tension * 220, now);
+          osc.frequency.exponentialRampToValueAtTime(160, now + 0.16);
+          osc.frequency.exponentialRampToValueAtTime(320, now + 0.21);
+
+          gain.gain.setValueAtTime(0.001, now);
+          gain.gain.linearRampToValueAtTime(0.22, now + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.23);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.24);
+        },
+
+        // 【風船ガム】破裂＆顔に貼り付く音「パァン!! ベチャッ!!」
+        playGumSplat(gumCount) {
+          if (!this.enabled) return;
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          const now = ctx.currentTime;
+          const boost = clamp(1 + (gumCount - 1) * 0.08, 1, 1.5);
+
+          // 1. 弾ける「パァン!!」
+          const pop = ctx.createOscillator();
+          const popGain = ctx.createGain();
+          pop.type = "sine";
+          pop.frequency.setValueAtTime(520, now);
+          pop.frequency.exponentialRampToValueAtTime(95, now + 0.065);
+          popGain.gain.setValueAtTime(0.75, now);
+          popGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+          pop.connect(popGain);
+          popGain.connect(ctx.destination);
+          pop.start(now);
+          pop.stop(now + 0.09);
+
+          if (this.noiseBuffer) {
+            const snap = ctx.createBufferSource();
+            snap.buffer = this.noiseBuffer;
+            const snapFilter = ctx.createBiquadFilter();
+            snapFilter.type = "highpass";
+            snapFilter.frequency.setValueAtTime(1100, now);
+            const snapGain = ctx.createGain();
+            snapGain.gain.setValueAtTime(0.7, now);
+            snapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+            snap.connect(snapFilter);
+            snapFilter.connect(snapGain);
+            snapGain.connect(ctx.destination);
+            snap.start(now);
+            snap.stop(now + 0.1);
+          }
+
+          // 2. 0.045秒後に顔へ「ベシャッ!! ペタッ!!」と貼り付く粘着音
+          const splatAt = now + 0.045;
+          if (this.noiseBuffer) {
+            const wet = ctx.createBufferSource();
+            wet.buffer = this.noiseBuffer;
+            const wetFilter = ctx.createBiquadFilter();
+            wetFilter.type = "bandpass";
+            wetFilter.frequency.setValueAtTime(1600, splatAt);
+            wetFilter.frequency.exponentialRampToValueAtTime(320, splatAt + 0.22);
+            wetFilter.Q.value = 3.2;
+
+            const wetGain = ctx.createGain();
+            wetGain.gain.setValueAtTime(0.001, splatAt);
+            wetGain.gain.linearRampToValueAtTime(0.55 * Math.min(boost, 1.3), splatAt + 0.02);
+            wetGain.gain.exponentialRampToValueAtTime(0.001, splatAt + 0.26);
+
+            wet.connect(wetFilter);
+            wetFilter.connect(wetGain);
+            wetGain.connect(ctx.destination);
+            wet.start(splatAt);
+            wet.stop(splatAt + 0.28);
+          }
+
+          // べちゃっとしたコミカル低音（ビチャッ）
+          const squish = ctx.createOscillator();
+          const sqGain = ctx.createGain();
+          squish.type = "sawtooth";
+          const sqFilter = ctx.createBiquadFilter();
+          sqFilter.type = "lowpass";
+          sqFilter.frequency.setValueAtTime(700, splatAt);
+          sqFilter.frequency.exponentialRampToValueAtTime(140, splatAt + 0.18);
+
+          squish.frequency.setValueAtTime(260, splatAt);
+          squish.frequency.exponentialRampToValueAtTime(75, splatAt + 0.16);
+          sqGain.gain.setValueAtTime(0.001, splatAt);
+          sqGain.gain.linearRampToValueAtTime(0.32, splatAt + 0.015);
+          sqGain.gain.exponentialRampToValueAtTime(0.001, splatAt + 0.2);
+
+          squish.connect(sqFilter);
+          sqFilter.connect(sqGain);
+          sqGain.connect(ctx.destination);
+          squish.start(splatAt);
+          squish.stop(splatAt + 0.22);
         },
 
         // 復活音「ポンッ！」
@@ -952,9 +1161,6 @@
 
       /* =========================================================
        * 3. 物体カタログ定義（キャラ追加・拡張ポイント）
-       * ---------------------------------------------------------
-       * 各キャラは tapAction / holdAction / burstAction / render を持ち、
-       * 新キャラ（スライムやサンドバッグ等）も同様にここへ追加できます。
        * ========================================================= */
       const OBJECT_CATALOG = {
         /* -------------------------------------------------------
@@ -965,6 +1171,7 @@
           name: "風船",
           tabIcon: "🎈",
           bodyClass: "mode-balloon",
+          overlayPosition: "center",
           hud: {
             actionIcon: "👊",
             actionLabel: "殴った",
@@ -1383,6 +1590,7 @@
           name: "炭酸ボトル",
           tabIcon: "🥤",
           bodyClass: "mode-soda",
+          overlayPosition: "center",
           hud: {
             actionIcon: "🍬",
             actionLabel: "メントス",
@@ -1393,7 +1601,6 @@
             hintAlive: "タップでメントス投入 ／ 長押しで振る！",
             hintDead: "画面をタップで新しいボトルを出す"
           },
-          // 復活ごとに変わる炭酸フレーバーパレット
           colors: [
             { name: "コーラ", main: "#5c2614", liquidTop: "#9c4a1a", foam: "#fff3db", label: "#e63946", cap: "#d62828" },
             { name: "サイダー", main: "#0096c7", liquidTop: "#48cae4", foam: "#ffffff", label: "#0077b6", cap: "#023e8a" },
@@ -1418,11 +1625,11 @@
           initExtra(state) {
             state.soda = {
               mentosCount: 0,
-              liquidLevel: 0.82,      // 1.0で満タン、噴射中に減っていく
+              liquidLevel: 0.82,
               sloshAngle: 0,
               sloshVel: 0,
               shakePhase: 0,
-              capOpenTimer: 0,        // メントス投入時にキャップが一瞬開く演出
+              capOpenTimer: 0,
               capPopped: false,
               capX: 0,
               capY: 0,
@@ -1432,14 +1639,13 @@
               capVRot: 0,
               eruptTimer: 0,
               eruptMax: 0,
-              eruptPower: 0,          // メントス数に応じた噴射パワー係数
+              eruptPower: 0,
               overlayShown: false,
               overlayDelay: 0,
-              fallingMentos: [],      // 上から落ちてくるメントス粒
-              seatedMentos: [],       // ボトル底にたまったメントス粒
-              bubbles: []             // ボトル内の炭酸泡
+              fallingMentos: [],
+              seatedMentos: [],
+              bubbles: []
             };
-            // 初期の炭酸泡を配置
             for (let i = 0; i < 16; i++) {
               state.soda.bubbles.push({
                 nx: (Math.random() - 0.5) * 0.78,
@@ -1450,24 +1656,33 @@
             }
           },
 
+          getSubHudInfo(state) {
+            if (!state.soda) return null;
+            const m = state.soda.mentosCount;
+            let level = "low";
+            let tag = "ノーマル";
+            if (m >= 12) { level = "high"; tag = "成層圏レベル!!"; }
+            else if (m >= 8) { level = "high"; tag = "超・大噴火!!"; }
+            else if (m >= 4) { level = "mid"; tag = "特大パワー！"; }
+            else if (m >= 1) { level = "mid"; tag = "威力UP！"; }
+            return { text: `🍬 メントス × ${m}`, tag, level };
+          },
+
           onTap(x, y, state, api) {
             const sd = state.soda;
             sd.mentosCount += 1;
             sd.capOpenTimer = 0.26;
             state.hurtTimer = 0.24;
 
-            // ボトルが少し弾む＆液体がチャポンと揺れる
             state.velY += 110;
             state.velScaleX += 1.9;
             state.velScaleY -= 1.9;
             sd.sloshVel += (Math.random() > 0.5 ? 1 : -1) * 5.5;
 
-            // メントス投入でベース炭酸圧も少し上昇（投入だけでは最大62%までにして振る楽しみを残す）
             if (state.tension < 0.62) {
               state.tension = Math.min(0.62, state.tension + 0.045);
             }
 
-            // 上からボトル口へ落ちるメントス粒を追加
             const mentosPalette = ["#ffffff", "#fff0f6", "#e7f5ff", "#fff9db", "#ebfbee"];
             sd.fallingMentos.push({
               progress: 0,
@@ -1476,7 +1691,6 @@
               rot: (Math.random() - 0.5) * 1.2
             });
 
-            // 泡を一気に増やす
             const extraBubbles = Math.min(4 + Math.floor(sd.mentosCount / 3), 10);
             for (let i = 0; i < extraBubbles; i++) {
               if (sd.bubbles.length < 70) {
@@ -1489,7 +1703,6 @@
               }
             }
 
-            // ボトル口から小さな泡スパーク
             const nozzleY = api.centerY - api.baseRadius * 1.18;
             for (let i = 0; i < 6; i++) {
               const ang = -Math.PI / 2 + (Math.random() - 0.5) * 1.1;
@@ -1510,10 +1723,9 @@
             }
 
             api.incrementAction();
-            api.pulseMentosHUD();
+            api.pulseSubHUD();
             SoundEngine.playMentosDrop(sd.mentosCount);
 
-            // メントス数に応じたコミカル擬音
             let wordPool = this.texts.mentosWordsLow;
             let color = "#0077b6";
             if (sd.mentosCount >= 8) {
@@ -1538,18 +1750,15 @@
           },
 
           onHoldMove(x, y, state, api) {
-            // 指を左右に動かすとボトルの傾きに少し反映
             const tilt = clamp((x - api.centerX) / (api.viewW * 0.45), -0.35, 0.35);
             state.velRot += (tilt - state.rot) * 1.2;
           },
 
           onHoldUpdate(dt, state, api) {
             const sd = state.soda;
-            // メントスが多いほど炭酸の上昇が速くなる！
             const speedBoost = 1 + Math.min(sd.mentosCount, 12) * 0.075;
             state.tension = clamp(state.tension + (dt * speedBoost) / this.physics.holdDuration, 0, 1);
 
-            // 激しく上下＆左右にシェイク！
             const shakeFreq = 22 + state.tension * 18;
             sd.shakePhase += dt * shakeFreq;
             const shakeAmpY = 26 + state.tension * 22;
@@ -1560,7 +1769,6 @@
             state.rot = Math.sin(sd.shakePhase * 0.5) * (0.16 + state.tension * 0.16);
             sd.sloshVel += Math.cos(sd.shakePhase) * (16 + state.tension * 24) * dt;
 
-            // リズムよくシャカシャカ音を鳴らす
             state.holdSoundTimer -= dt;
             if (state.holdSoundTimer <= 0) {
               SoundEngine.playShakeSlosh(state.tension);
@@ -1583,27 +1791,22 @@
 
           onIdleUpdate(dt, state) {
             const sd = state.soda;
-            // メントスが入っているほど下がりにくい（最低ラインを少し維持）
             const minBase = Math.min(sd.mentosCount * 0.03, 0.32);
             if (state.tension > minBase) {
               state.tension = Math.max(minBase, state.tension - dt * this.physics.coolDownRate);
             }
           },
 
-          // ボトル内部の物理（泡・落下中メントス・液面揺れ・噴射ジェット）を毎フレーム更新
           onPostPhysics(dt, state, api) {
             const sd = state.soda;
             if (!sd) return;
 
-            // キャップの一瞬オープン減衰
             sd.capOpenTimer = Math.max(0, sd.capOpenTimer - dt);
 
-            // 液面の揺れバネ
             const sloshAcc = -42 * sd.sloshAngle - 5.2 * sd.sloshVel;
             sd.sloshVel += sloshAcc * dt;
             sd.sloshAngle = clamp(sd.sloshAngle + sd.sloshVel * dt, -0.55, 0.55);
 
-            // 落下中のメントス粒を更新 → 底へ着水
             for (let i = sd.fallingMentos.length - 1; i >= 0; i--) {
               const fm = sd.fallingMentos[i];
               fm.progress += dt * 4.2;
@@ -1620,7 +1823,6 @@
               }
             }
 
-            // 泡の上昇
             const fizzSpeed = 1 + state.tension * 3.8 + Math.min(sd.mentosCount, 12) * 0.28;
             for (const b of sd.bubbles) {
               b.ny += b.speed * fizzSpeed * dt;
@@ -1631,7 +1833,6 @@
               }
             }
 
-            // 吹き飛んだキャップの物理
             if (sd.capPopped) {
               sd.capVy += 920 * dt;
               sd.capX += sd.capVx * dt;
@@ -1639,22 +1840,18 @@
               sd.capRot += sd.capVRot * dt;
             }
 
-            // 噴射中（連続ガイザージェット発生！）
             if (!state.alive && sd.eruptTimer > 0) {
               sd.eruptTimer = Math.max(0, sd.eruptTimer - dt);
-              const progress = sd.eruptTimer / sd.eruptMax; // 1 → 0
-              const power = sd.eruptPower; // 1.0 (メントス0) 〜 3.4+ (メントス大量)
+              const progress = sd.eruptTimer / sd.eruptMax;
+              const power = sd.eruptPower;
 
-              // 中身が勢いよく減っていく
               const targetMinLiquid = clamp(0.32 - power * 0.08, 0.08, 0.32);
               sd.liquidLevel = Math.max(targetMinLiquid, sd.liquidLevel - dt * (0.34 + power * 0.12));
 
-              // 反動でボトルが下に押し込まれてブルブル震える
               state.offsetY = lerp(state.offsetY, 18 + power * 10, dt * 10) + (Math.random() - 0.5) * (4 + power * 3);
               state.offsetX = (Math.random() - 0.5) * (3 + power * 2.5);
               state.screenShake = Math.max(state.screenShake, (3 + power * 4.5) * progress);
 
-              // ノズル位置から炭酸＆泡パーティクルを連続噴射！
               const nozzleX = api.centerX + state.offsetX;
               const nozzleY = api.centerY + state.offsetY - api.baseRadius * 1.05;
               const emitCount = Math.ceil((3 + power * 4.2) * (0.35 + progress * 0.65));
@@ -1679,7 +1876,6 @@
                 });
               }
 
-              // メントス大量時は星エフェクトも弾け飛ぶ！
               if (sd.mentosCount >= 5 && Math.random() < 0.35 * progress) {
                 const ang = -Math.PI / 2 + (Math.random() - 0.5) * 1.2;
                 const speed = 380 + Math.random() * 340;
@@ -1699,7 +1895,6 @@
               }
             }
 
-            // 噴射を少し楽しませてから結果オーバーレイを表示
             if (!state.alive && !sd.overlayShown) {
               sd.overlayDelay -= dt;
               if (sd.overlayDelay <= 0) {
@@ -1716,7 +1911,6 @@
             state.alive = false;
             state.tension = 1;
 
-            // メントス数に応じて噴射パワー・時間・派手さを大幅強化！
             const power = 1 + Math.min(m, 20) * 0.16;
             const duration = 1.0 + Math.min(m, 14) * 0.11;
 
@@ -1727,7 +1921,6 @@
             sd.overlayDelay = Math.min(0.65 + m * 0.05, 1.35);
             state.respawnReadyAt = performance.now() + sd.overlayDelay * 1000 + 250;
 
-            // キャップが勢いよく吹っ飛ぶ
             sd.capPopped = true;
             sd.capX = api.centerX;
             sd.capY = api.centerY - api.baseRadius * 1.15;
@@ -1743,14 +1936,12 @@
 
             SoundEngine.playErupt(m);
 
-            // 噴射口に衝撃リング
             const nozzleY = api.centerY - api.baseRadius * 1.05;
             api.addShockwave(api.centerX, nozzleY, 16, api.baseRadius * (1.2 + power * 0.45), 0.35, state.palette.liquidTop);
             if (m >= 5) {
               api.addShockwave(api.centerX, nozzleY, 24, Math.max(api.viewW, api.viewH) * 0.62, 0.48, "#ffd166");
             }
 
-            // メントス数に応じたコミカルな噴射メッセージを決定
             let ono = "ブシャーッ!!";
             let msg = "普通に大惨事！テーブルびしょびしょ！";
             if (m >= 12) {
@@ -1769,8 +1960,6 @@
 
             sd.pendingOno = ono;
             sd.pendingMsg = msg;
-
-            // 噴射直後に画面上部へデカい擬音ポップアップを飛ばす
             api.addPopup(ono, api.centerX, api.centerY - api.baseRadius * 0.9, "#ff2e4c", m >= 6 ? 44 : 38);
           },
 
@@ -1781,7 +1970,6 @@
             const pal = state.palette;
             const tension = state.tension;
 
-            // ボトル寸法（画面サイズに美しくフィット）
             const bodyW = baseR * 1.24;
             const bodyH = baseR * 1.78;
             const neckW = bodyW * 0.34;
@@ -1789,7 +1977,6 @@
             const shoulderY = -bodyH * 0.34;
             const bottomY = bodyH * 0.56;
 
-            // 限界が近づくほど小刻みに震える＆膨張
             const shakeAmp = state.alive && tension > 0.25 ? (1.5 + tension * tension * 9) : 0;
             const shakeX = shakeAmp ? (Math.random() - 0.5) * 2 * shakeAmp : 0;
             const shakeY = shakeAmp ? (Math.random() - 0.5) * 2 * shakeAmp : 0;
@@ -1798,12 +1985,10 @@
             const posX = cx + state.offsetX + shakeX;
             const posY = cy + baseR * 0.08 + idleFloat + state.offsetY + shakeY;
 
-            // 圧力が高まるとペットボトルがパンパンに膨らむ！
             const bulge = state.alive ? 1 + tension * 0.11 : 1;
             const sx = state.scaleX * bulge * state.spawnScale;
             const sy = state.scaleY * (1 + (state.alive ? tension * 0.04 : 0)) * state.spawnScale;
 
-            // --- 噴射中の連続ソーダ柱（ボトルの口から真上へ吹き上がる太い柱） ---
             if (!state.alive && sd.eruptTimer > 0) {
               const progress = sd.eruptTimer / sd.eruptMax;
               const power = sd.eruptPower;
@@ -1836,48 +2021,38 @@
               ctx.closePath();
               ctx.fillStyle = jetGrad;
               ctx.fill();
-
-              // ジェットの白い泡の縁取り
               ctx.strokeStyle = "rgba(255,255,255,0.9)";
               ctx.lineWidth = 4;
               ctx.stroke();
               ctx.restore();
             }
 
-            // --- ボトル本体を描画 ---
             ctx.save();
             ctx.translate(posX, posY);
             ctx.rotate(state.rot);
             ctx.scale(sx, sy);
 
-            // ボトル外形パスを作るヘルパー
             const traceBottlePath = () => {
               const halfW = bodyW * 0.5;
               const halfNeck = neckW * 0.5;
               ctx.beginPath();
-              // 首の上端
               ctx.moveTo(-halfNeck, topY);
               ctx.lineTo(halfNeck, topY);
-              // 右首〜なだらかな肩
               ctx.lineTo(halfNeck, topY + 20);
               ctx.bezierCurveTo(halfNeck, shoulderY - 12, halfW, shoulderY - 14, halfW, shoulderY + 18);
-              // 右胴体（少しくびれ）
               ctx.bezierCurveTo(halfW + 3, 0, halfW - 6, bodyH * 0.14, halfW, bodyH * 0.28);
               ctx.lineTo(halfW, bottomY - 20);
-              // ペットボトルの足（底の凹凸）
               ctx.quadraticCurveTo(halfW, bottomY, halfW - 22, bottomY);
               ctx.quadraticCurveTo(halfW * 0.45, bottomY + 3, halfW * 0.22, bottomY - 7);
               ctx.quadraticCurveTo(0, bottomY + 2, -halfW * 0.22, bottomY - 7);
               ctx.quadraticCurveTo(-halfW * 0.45, bottomY + 3, -halfW + 22, bottomY);
               ctx.quadraticCurveTo(-halfW, bottomY, -halfW, bottomY - 20);
-              // 左胴体〜肩〜左首
               ctx.lineTo(-halfW, bodyH * 0.28);
               ctx.bezierCurveTo(-halfW + 6, bodyH * 0.14, -halfW - 3, 0, -halfW, shoulderY + 18);
               ctx.bezierCurveTo(-halfW, shoulderY - 14, -halfNeck, shoulderY - 12, -halfNeck, topY + 20);
               ctx.closePath();
             };
 
-            // 1. 透明ペットボトルのベース背景
             traceBottlePath();
             const glassGrad = ctx.createLinearGradient(-bodyW * 0.5, 0, bodyW * 0.5, 0);
             glassGrad.addColorStop(0, "rgba(255, 255, 255, 0.85)");
@@ -1886,7 +2061,6 @@
             ctx.fillStyle = glassGrad;
             ctx.fill();
 
-            // 2. ボトル内側クリップ（液体・泡・泡ヘッド・沈んだメントス）
             ctx.save();
             traceBottlePath();
             ctx.clip();
@@ -1895,7 +2069,6 @@
             const liqTopY = bottomY - totalInsideH * sd.liquidLevel;
             const foamThickness = 10 + tension * 34 + Math.min(sd.mentosCount, 12) * 2.4;
 
-            // 危険度に応じて液体が少し赤みを帯びて光る
             const liqMain = state.alive && tension > 0.55
               ? mixColor(pal.main, "#ff1e42", (tension - 0.55) * 0.9)
               : pal.main;
@@ -1903,7 +2076,6 @@
               ? mixColor(pal.liquidTop, "#ff6b6b", (tension - 0.55) * 0.8)
               : pal.liquidTop;
 
-            // 液体本体（波打つ水面）
             const waveTilt = sd.sloshAngle * bodyW * 0.45;
             const waveBob = Math.sin(time * (6 + tension * 18)) * (4 + tension * 9);
             ctx.beginPath();
@@ -1921,7 +2093,6 @@
             ctx.fillStyle = liqGrad;
             ctx.fill();
 
-            // シュワシュワ泡ヘッド（水面の上にもこもこ層）
             ctx.beginPath();
             ctx.moveTo(-bodyW, liqTopY - waveTilt + 6);
             ctx.quadraticCurveTo(0, liqTopY + 8, bodyW, liqTopY + waveTilt + 6);
@@ -1931,7 +2102,6 @@
             ctx.fillStyle = pal.foam;
             ctx.fill();
 
-            // ボトル底に沈んだメントス粒（振ると中で踊る！）
             for (let i = 0; i < sd.seatedMentos.length; i++) {
               const sm = sd.seatedMentos[i];
               const bounce = state.isHolding ? Math.sin(time * 28 + i * 2.1) * (10 + tension * 18) : Math.sin(time * 4 + i) * 1.5;
@@ -1950,7 +2120,6 @@
               ctx.restore();
             }
 
-            // 炭酸の泡（上昇気泡）
             ctx.fillStyle = "rgba(255, 255, 255, 0.65)";
             for (const b of sd.bubbles) {
               const bx = b.nx * bodyW * 0.5;
@@ -1960,23 +2129,19 @@
               ctx.fill();
             }
 
-            // 3. ボトル中央のラベル帯
             const labelTop = -bodyH * 0.08;
             const labelH = bodyH * 0.39;
             ctx.fillStyle = pal.label;
             ctx.fillRect(-bodyW * 0.6, labelTop, bodyW * 1.2, labelH);
 
-            // ラベル上下の白いストライプ
             ctx.fillStyle = "rgba(255,255,255,0.92)";
             ctx.fillRect(-bodyW * 0.6, labelTop + 4, bodyW * 1.2, 4);
             ctx.fillRect(-bodyW * 0.6, labelTop + labelH - 8, bodyW * 1.2, 4);
 
-            // ラベル内のコミカルな顔
             this.renderFace(ctx, state, bodyW, labelTop + labelH * 0.5, time);
 
-            ctx.restore(); // クリップ終了
+            ctx.restore();
 
-            // 4. ボトルのツヤ（プラスチック光沢）
             ctx.save();
             ctx.strokeStyle = "rgba(255, 255, 255, 0.58)";
             ctx.lineWidth = 7;
@@ -1992,13 +2157,11 @@
             ctx.stroke();
             ctx.restore();
 
-            // 5. ボトル外枠の太線＆首リング
             traceBottlePath();
             ctx.lineWidth = 4.5;
             ctx.strokeStyle = "#2b2d42";
             ctx.stroke();
 
-            // 首のプラスチックリング
             drawRoundedRect(ctx, -neckW * 0.58, topY + 13, neckW * 1.16, 8, 4);
             ctx.fillStyle = "#e8f4fa";
             ctx.fill();
@@ -2006,7 +2169,6 @@
             ctx.strokeStyle = "#2b2d42";
             ctx.stroke();
 
-            // 6. キャップ（未噴射時のみボトル上に描画。メントス投入時はパカッと少し開く）
             if (!sd.capPopped) {
               ctx.save();
               const openLift = sd.capOpenTimer > 0 ? Math.sin((sd.capOpenTimer / 0.26) * Math.PI) : 0;
@@ -2020,7 +2182,6 @@
               ctx.strokeStyle = "#2b2d42";
               ctx.stroke();
 
-              // キャップのギザギザ縦線
               ctx.strokeStyle = "rgba(255,255,255,0.45)";
               ctx.lineWidth = 2;
               for (let gx = -neckW * 0.35; gx <= neckW * 0.35; gx += neckW * 0.23) {
@@ -2032,7 +2193,6 @@
               ctx.restore();
             }
 
-            // 7. 落下中（ボトル口に飛び込む）メントス粒を描画
             for (const fm of sd.fallingMentos) {
               const p = fm.progress;
               const mx = lerp(fm.startXOffset, 0, Math.min(1, p * 1.5));
@@ -2050,7 +2210,6 @@
               ctx.restore();
             }
 
-            // 8. 限界間近の青筋・汗マーク
             if (state.alive && tension > 0.55) {
               ctx.save();
               ctx.translate(bodyW * 0.44, shoulderY + 6);
@@ -2076,7 +2235,6 @@
 
             ctx.restore();
 
-            // 9. 吹き飛んだキャップをワールド座標で描画
             if (sd.capPopped && sd.capY < env.viewH + 100) {
               ctx.save();
               ctx.translate(sd.capX, sd.capY);
@@ -2101,7 +2259,6 @@
             ctx.lineJoin = "round";
 
             if (!state.alive) {
-              // 噴射中・噴射後：目がぐるぐる「＠ ＠」＋アヘ顔ぽく抜けた口
               ctx.lineWidth = 3.5;
               [-eyeX, eyeX].forEach((x) => {
                 ctx.beginPath();
@@ -2119,7 +2276,6 @@
               ctx.lineWidth = 2.5;
               ctx.stroke();
             } else if (state.hurtTimer > 0) {
-              // メントスが落ちてきた瞬間：「O_O」びっくり顔！
               ctx.lineWidth = 3.5;
               [-eyeX, eyeX].forEach((x) => {
                 ctx.beginPath();
@@ -2139,7 +2295,6 @@
               ctx.lineWidth = 2.5;
               ctx.stroke();
             } else if (state.isHolding || state.tension > 0.45) {
-              // 振られて必死な顔「＞ ＜」
               ctx.lineWidth = 4.2;
               ctx.beginPath();
               ctx.moveTo(-eyeX - 9, eyeY - 7);
@@ -2150,7 +2305,6 @@
               ctx.lineTo(eyeX + 9, eyeY + 7);
               ctx.stroke();
 
-              // 歯を食いしばるギザギザ口
               ctx.beginPath();
               const my = cy + 15;
               ctx.moveTo(-18, my);
@@ -2160,7 +2314,6 @@
               ctx.lineTo(18, my);
               ctx.stroke();
             } else {
-              // 通常時（メントスをたくさん入れられると少し冷や汗・焦り顔に変化）
               ctx.beginPath();
               ctx.arc(-eyeX, eyeY, 6.2, 0, Math.PI * 2);
               ctx.arc(eyeX, eyeY, 6.2, 0, Math.PI * 2);
@@ -2168,23 +2321,778 @@
 
               ctx.lineWidth = 3.8;
               if (sd.mentosCount >= 5) {
-                // ヤバいと感じて引きつる口
                 ctx.beginPath();
                 ctx.moveTo(-14, cy + 15);
                 ctx.quadraticCurveTo(0, cy + 8, 14, cy + 15);
                 ctx.stroke();
               } else {
-                // 余裕のニヤリ笑顔
                 ctx.beginPath();
                 ctx.arc(0, cy + 8, 13, 0.18 * Math.PI, 0.82 * Math.PI);
                 ctx.stroke();
               }
             }
           }
+        },
+
+        /* -------------------------------------------------------
+         * キャラ3：おかっぱ女子の風船ガム（長押しで膨らませて顔にベシャッ!!）
+         * ------------------------------------------------------- */
+        gum: {
+          id: "gum",
+          name: "風船ガム",
+          tabIcon: "🫧",
+          bodyClass: "mode-gum",
+          overlayPosition: "bottom", // ベシャッとした顔をしっかり見せるため下部表示
+          hud: {
+            actionIcon: "🍬",
+            actionLabel: "モグモグ",
+            burstIcon: "💥",
+            burstLabel: "ベシャッ",
+            gaugeIdle: "🫧 風船ガムふくらみ",
+            gaugeBurst: "💥 顔面ベシャッ!!",
+            hintAlive: "長押しでガムを膨らませる ／ タップでガム増量",
+            hintDead: "画面をタップで顔からガムを剥がす"
+          },
+          // 復活ごとに変わるガムフレーバー＆おかっぱ女子のトップス＆ヘアピン色
+          colors: [
+            { name: "イチゴ", main: "#ff6b9d", shade: "#e03e78", light: "#ffc2d9", shirt: "#ff8fab", pin: "#ffd166" },
+            { name: "ソーダ", main: "#4cc9f0", shade: "#1b98c4", light: "#c7f2ff", shirt: "#72efdd", pin: "#ff595e" },
+            { name: "マスカット", main: "#70e000", shade: "#38b000", light: "#d8f8b5", shirt: "#9ef01a", pin: "#ff6b9d" },
+            { name: "グレープ", main: "#b565f7", shade: "#8338ec", light: "#e9d2ff", shirt: "#cdb4db", pin: "#ffbe0b" },
+            { name: "ピーチ", main: "#ff9770", shade: "#f26430", light: "#ffe1d4", shirt: "#ffd670", pin: "#ff595e" }
+          ],
+          physics: {
+            springK: 220,
+            damping: 11.0,
+            holdDuration: 2.35,
+            coolDownRate: 1.65
+          },
+          texts: {
+            chewWords: ["クチャッ！", "モグモグ！", "ガム追加！", "ぷにゅっ！", "増量中♪"],
+            holdCry: ["ふぅ〜…", "ぷくぅ〜っ！", "でっかくなってきた…", "ヤバい！割れそうッ!!"],
+            splatWord: "ベシャッ!!",
+            splatMessagesNormal: [
+              "あーあ、顔じゅうベタベタ…！",
+              "前髪にくっついちゃったんですけど！？",
+              "うわぁ…目が見えないぃ！",
+              "やりすぎ！ベッタベタじゃん！"
+            ],
+            splatMessagesMega: [
+              "ガム入れすぎ!! 顔面ぜんぶ封印された！",
+              "特大ベシャッ!! おかっぱ全滅レベル!!",
+              "もう一生取れない気がする…！"
+            ],
+            respawnLabel: "タップでベリッと剥がす"
+          },
+
+          initExtra(state) {
+            state.gum = {
+              gumCount: 1,         // 初期1粒。タップで増量可能（最大10粒相当まで巨大化）
+              chewTimer: 0,        // タップ時のモグモグアニメーション
+              splatProgress: 0,    // 破裂後のベシャッ張り付き進行（0→1）
+              dripPhase: 0,        // ベシャッと貼られたガムの垂れ動き
+              overlayShown: false,
+              overlayDelay: 0,
+              splatLobes: [],      // 顔面に貼り付く不定形ガム形状データ
+              splatDots: []        // 周囲に飛び散って張り付く小粒ガム
+            };
+          },
+
+          getSubHudInfo(state) {
+            if (!state.gum) return null;
+            const g = state.gum.gumCount;
+            let level = "low";
+            let tag = "ふつうサイズ";
+            if (g >= 7) { level = "high"; tag = "顔面完全封印級!!"; }
+            else if (g >= 4) { level = "mid"; tag = "特大ガム！"; }
+            else if (g >= 2) { level = "mid"; tag = "ボリュームUP！"; }
+            return { text: `🍬 ガム × ${g}粒`, tag, level };
+          },
+
+          onTap(x, y, state, api) {
+            const gm = state.gum;
+            gm.gumCount += 1;
+            gm.chewTimer = 0.34;
+            state.velY += 65;
+            state.velScaleX += 1.4;
+            state.velScaleY -= 1.4;
+
+            api.incrementAction();
+            api.pulseSubHUD();
+            SoundEngine.playGumChew(gm.gumCount);
+
+            // ほっぺのあたりにポップな擬音
+            api.addPopup(
+              pick(this.texts.chewWords),
+              clamp(x, 75, api.viewW - 75),
+              clamp(y - 26, 130, api.viewH - 140),
+              state.palette.shade,
+              28 + Math.min(gm.gumCount, 6) * 1.4
+            );
+
+            // 小さなキラキラパーティクル
+            for (let i = 0; i < 6; i++) {
+              const ang = Math.random() * Math.PI * 2;
+              const spd = 80 + Math.random() * 120;
+              api.addParticle({
+                kind: "foam",
+                x: api.centerX + (Math.random() - 0.5) * 30,
+                y: api.centerY + api.baseRadius * 0.2,
+                vx: Math.cos(ang) * spd,
+                vy: Math.sin(ang) * spd - 40,
+                size: 4 + Math.random() * 4,
+                rot: 0,
+                vRot: 0,
+                color: state.palette.main,
+                gravity: 220,
+                maxLife: 0.36
+              });
+            }
+          },
+
+          onHoldStart(x, y, state) {
+            state.holdSoundTimer = 0;
+          },
+
+          onHoldMove() {},
+
+          onHoldUpdate(dt, state, api) {
+            const gm = state.gum;
+            // ガムが多いほど少しだけ早く、より大きく膨らむ
+            const speedFactor = 1 + Math.min(gm.gumCount - 1, 8) * 0.04;
+            state.tension = clamp(state.tension + (dt * speedFactor) / this.physics.holdDuration, 0, 1);
+
+            state.holdSoundTimer -= dt;
+            if (state.holdSoundTimer <= 0) {
+              SoundEngine.playGumInflate(state.tension);
+              state.holdSoundTimer = lerp(0.24, 0.1, state.tension);
+            }
+
+            if (state.tension >= 1) {
+              api.triggerBurst();
+            }
+          },
+
+          onHoldEnd(state, playSound) {
+            if (state.alive && state.tension > 0.08) {
+              state.velScaleX += 1.4;
+              state.velScaleY -= 1.4;
+              if (playSound) SoundEngine.playGumDeflate(state.tension);
+            }
+          },
+
+          onIdleUpdate(dt, state) {
+            state.tension = Math.max(0, state.tension - dt * this.physics.coolDownRate);
+          },
+
+          onPostPhysics(dt, state, api) {
+            const gm = state.gum;
+            if (!gm) return;
+            gm.chewTimer = Math.max(0, gm.chewTimer - dt);
+
+            if (!state.alive) {
+              gm.splatProgress = Math.min(1, gm.splatProgress + dt * 6.5);
+              gm.dripPhase += dt;
+              if (!gm.overlayShown) {
+                gm.overlayDelay -= dt;
+                if (gm.overlayDelay <= 0) {
+                  gm.overlayShown = true;
+                  api.showBurstOverlay(gm.pendingOno, gm.pendingMsg, this.texts.respawnLabel);
+                }
+              }
+            }
+          },
+
+          onBurst(state, api) {
+            const gm = state.gum;
+            const g = gm.gumCount;
+
+            state.alive = false;
+            state.tension = 1;
+            gm.splatProgress = 0.08;
+            gm.dripPhase = 0;
+            gm.overlayShown = false;
+            // ベシャッと貼り付いた顔を0.75秒しっかり見せてから下部にメッセージを出す
+            gm.overlayDelay = 0.72;
+            state.respawnReadyAt = performance.now() + 920;
+
+            // 顔面に貼り付く不定形ベシャッ形状を生成（ガム増量ほど広範囲！）
+            const spreadScale = 1 + Math.min(g - 1, 9) * 0.075;
+            gm.splatLobes = [];
+            const lobeCount = 16;
+            for (let i = 0; i < lobeCount; i++) {
+              const ang = (i / lobeCount) * Math.PI * 2;
+              const isDrip = Math.sin(ang) > 0.35;
+              const rBase = (0.68 + Math.random() * 0.42 + (isDrip ? 0.16 : 0)) * spreadScale;
+              gm.splatLobes.push({ ang, r: rBase });
+            }
+
+            // 髪やほっぺの端に飛び散った小粒ガム
+            gm.splatDots = [];
+            const dotCount = 8 + Math.min(g, 8);
+            for (let i = 0; i < dotCount; i++) {
+              const ang = Math.random() * Math.PI * 2;
+              const dist = (0.76 + Math.random() * 0.52) * Math.min(spreadScale, 1.35);
+              gm.splatDots.push({
+                ang,
+                dist,
+                rx: 7 + Math.random() * 11,
+                ry: 5 + Math.random() * 9,
+                rot: Math.random() * Math.PI
+              });
+            }
+
+            // 衝撃でキャラがのけぞるリアクション
+            state.velY += 220;
+            state.velScaleX += 3.0;
+            state.velScaleY -= 2.8;
+            state.velRot += (Math.random() > 0.5 ? 1 : -1) * 3.8;
+            state.screenShake = 14 + Math.min(g, 8) * 1.1;
+
+            SoundEngine.playGumSplat(g);
+
+            // 破裂した瞬間の口元中心座標
+            const mouthY = api.centerY + api.baseRadius * 0.24;
+            api.addShockwave(api.centerX, mouthY, 20, api.baseRadius * 1.45, 0.32, state.palette.main);
+
+            // 四方八方へ飛び散るガムの破片・粘着滴
+            const pal = state.palette;
+            const fragCount = 26 + Math.min(g, 8) * 3;
+            for (let i = 0; i < fragCount; i++) {
+              const ang = Math.random() * Math.PI * 2;
+              const speed = 170 + Math.random() * 420;
+              api.addParticle({
+                kind: i % 5 === 0 ? "star" : "foam",
+                x: api.centerX + (Math.random() - 0.5) * 30,
+                y: mouthY + (Math.random() - 0.5) * 20,
+                vx: Math.cos(ang) * speed,
+                vy: Math.sin(ang) * speed - 80,
+                size: 6 + Math.random() * 11,
+                rot: Math.random() * Math.PI,
+                vRot: (Math.random() - 0.5) * 14,
+                color: i % 5 === 0 ? "#ffd166" : (i % 3 === 0 ? pal.light : pal.main),
+                gravity: 540,
+                maxLife: 0.55 + Math.random() * 0.45
+              });
+            }
+
+            // 破裂直後のコミカル擬音
+            api.addPopup("パァン!! ベシャッ!!", api.centerX, api.centerY - api.baseRadius * 0.88, "#ff2e4c", 34);
+
+            gm.pendingOno = g >= 5 ? "特大ベシャッ!!" : this.texts.splatWord;
+            gm.pendingMsg = g >= 5
+              ? pick(this.texts.splatMessagesMega)
+              : pick(this.texts.splatMessagesNormal);
+          },
+
+          render(ctx, state, env) {
+            const gm = state.gum;
+            if (!gm) return;
+            const { cx, cy, baseR, time } = env;
+            const pal = state.palette;
+            const tension = state.tension;
+
+            // 顔の中心はやや上に寄せて、下部オーバーレイが出ても全身・顔が見やすい位置に配置
+            const headR = baseR * 0.88;
+            const idleFloat = state.alive && !state.isHolding ? Math.sin(time * 2.1) * 3.5 : 0;
+            const posX = cx + state.offsetX;
+            const posY = cy - baseR * 0.14 + idleFloat + state.offsetY;
+
+            // 膨らませ限界付近は顔も力んでブルブル小刻みに震える
+            const strainShake = state.alive && tension > 0.55 ? (tension - 0.55) * 9 : 0;
+            const sxShake = strainShake ? (Math.random() - 0.5) * strainShake : 0;
+            const syShake = strainShake ? (Math.random() - 0.5) * strainShake : 0;
+
+            ctx.save();
+            ctx.translate(posX + sxShake, posY + syShake);
+            ctx.rotate(state.rot);
+            ctx.scale(state.scaleX * state.spawnScale, state.scaleY * state.spawnScale);
+
+            const hairColor = "#24222c";
+            const hairHighlight = "rgba(255, 255, 255, 0.22)";
+            const skinColor = "#ffe2cc";
+            const skinShade = "#f7c7a7";
+            const cheekColor = "rgba(255, 118, 148, 0.42)";
+
+            /* --- 1. 首と肩（シンプルな可愛いトップス） --- */
+            // 後ろ髪（おかっぱのシルエット・背面）
+            ctx.beginPath();
+            ctx.moveTo(-headR * 1.18, headR * 0.72);
+            ctx.bezierCurveTo(-headR * 1.24, -headR * 0.3, -headR * 1.02, -headR * 1.24, 0, -headR * 1.24);
+            ctx.bezierCurveTo(headR * 1.02, -headR * 1.24, headR * 1.24, -headR * 0.3, headR * 1.18, headR * 0.72);
+            // あごラインで内巻きに切り揃えたおかっぱの裾
+            ctx.quadraticCurveTo(headR * 1.12, headR * 1.02, headR * 0.72, headR * 0.96);
+            ctx.lineTo(-headR * 0.72, headR * 0.96);
+            ctx.quadraticCurveTo(-headR * 1.12, headR * 1.02, -headR * 1.18, headR * 0.72);
+            ctx.closePath();
+            ctx.fillStyle = hairColor;
+            ctx.fill();
+            ctx.lineWidth = 4.5;
+            ctx.strokeStyle = "#181720";
+            ctx.stroke();
+
+            // 肩・トップス
+            ctx.beginPath();
+            ctx.moveTo(-headR * 0.78, headR * 1.52);
+            ctx.quadraticCurveTo(-headR * 0.74, headR * 1.05, -headR * 0.28, headR * 0.98);
+            ctx.lineTo(headR * 0.28, headR * 0.98);
+            ctx.quadraticCurveTo(headR * 0.74, headR * 1.05, headR * 0.78, headR * 1.52);
+            ctx.closePath();
+            ctx.fillStyle = pal.shirt;
+            ctx.fill();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = "#2b2d42";
+            ctx.stroke();
+
+            // 白い丸襟
+            ctx.beginPath();
+            ctx.moveTo(-headR * 0.28, headR * 0.98);
+            ctx.quadraticCurveTo(-headR * 0.14, headR * 1.22, 0, headR * 1.1);
+            ctx.quadraticCurveTo(headR * 0.14, headR * 1.22, headR * 0.28, headR * 0.98);
+            ctx.fillStyle = "#ffffff";
+            ctx.fill();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = "#2b2d42";
+            ctx.stroke();
+
+            // 首
+            drawRoundedRect(ctx, -headR * 0.19, headR * 0.72, headR * 0.38, headR * 0.36, 10);
+            ctx.fillStyle = skinShade;
+            ctx.fill();
+            ctx.lineWidth = 3.5;
+            ctx.strokeStyle = "#2b2d42";
+            ctx.stroke();
+
+            /* --- 2. 顔の輪郭（膨らませ中・噛み中はほっぺがぷくっと変形） --- */
+            const puffCheek = state.alive && state.isHolding
+              ? (0.06 + tension * 0.12)
+              : (gm.chewTimer > 0 ? Math.sin((gm.chewTimer / 0.34) * Math.PI * 2) * 0.05 : 0);
+
+            ctx.beginPath();
+            ctx.moveTo(0, -headR * 0.9);
+            ctx.bezierCurveTo(
+              headR * 0.96, -headR * 0.9,
+              headR * (0.98 + puffCheek), headR * 0.15,
+              headR * (0.86 + puffCheek * 0.8), headR * 0.56
+            );
+            ctx.quadraticCurveTo(headR * 0.56, headR * 0.92, 0, headR * 0.93);
+            ctx.quadraticCurveTo(-headR * 0.56, headR * 0.92, -headR * (0.86 + puffCheek * 0.8), headR * 0.56);
+            ctx.bezierCurveTo(
+              -headR * (0.98 + puffCheek), headR * 0.15,
+              -headR * 0.96, -headR * 0.9,
+              0, -headR * 0.9
+            );
+            ctx.closePath();
+
+            // 膨らませ限界時は少し顔が赤らむ（息をこらえている感）
+            const faceColor = state.alive && tension > 0.35
+              ? mixColor(skinColor, "#ffb5b5", (tension - 0.35) * 0.55)
+              : skinColor;
+            ctx.fillStyle = faceColor;
+            ctx.fill();
+            ctx.lineWidth = 4.2;
+            ctx.strokeStyle = "#2b2d42";
+            ctx.stroke();
+
+            /* --- 3. 表情（目・眉・チーク・口） --- */
+            const eyeY = headR * 0.06;
+            const eyeX = headR * 0.36;
+            const mouthY = headR * 0.45;
+
+            // チーク（ほっぺの赤み）
+            ctx.fillStyle = cheekColor;
+            ctx.beginPath();
+            ctx.ellipse(-headR * 0.5, headR * 0.28, headR * (0.16 + puffCheek * 0.4), headR * 0.1, 0, 0, Math.PI * 2);
+            ctx.ellipse(headR * 0.5, headR * 0.28, headR * (0.16 + puffCheek * 0.4), headR * 0.1, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = "#2b2d42";
+            ctx.fillStyle = "#2b2d42";
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+
+            if (!state.alive) {
+              // ベシャッ直後のショック顔（ガムの下や隙間から見えるコミカルな目！）
+              ctx.lineWidth = 4.2;
+              // 左目：ジト目・半泣きショック
+              ctx.beginPath();
+              ctx.moveTo(-eyeX - 13, eyeY - 9);
+              ctx.lineTo(-eyeX + 10, eyeY + 1);
+              ctx.lineTo(-eyeX - 12, eyeY + 10);
+              ctx.stroke();
+              // 右目：目が点（またはグルグル）
+              ctx.beginPath();
+              ctx.arc(eyeX, eyeY, 12, 0, Math.PI * 2);
+              ctx.fillStyle = "#ffffff";
+              ctx.fill();
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.arc(eyeX, eyeY, 3.5, 0, Math.PI * 2);
+              ctx.fillStyle = "#2b2d42";
+              ctx.fill();
+              // しょんぼり震える口
+              ctx.beginPath();
+              ctx.moveTo(-14, mouthY + 8);
+              ctx.quadraticCurveTo(0, mouthY - 4, 14, mouthY + 8);
+              ctx.stroke();
+            } else if (state.isHolding || tension > 0.05) {
+              // 息を吹き込んで一生懸命膨らませている顔！
+              ctx.lineWidth = 4.2;
+              if (tension > 0.65) {
+                // 限界間近：ぎゅっと目をつぶる「＞ ＜」＋汗！
+                ctx.beginPath();
+                ctx.moveTo(-eyeX - 12, eyeY - 9);
+                ctx.lineTo(-eyeX + 10, eyeY);
+                ctx.lineTo(-eyeX - 12, eyeY + 9);
+                ctx.moveTo(eyeX + 12, eyeY - 9);
+                ctx.lineTo(eyeX - 10, eyeY);
+                ctx.lineTo(eyeX + 12, eyeY + 9);
+                ctx.stroke();
+              } else {
+                // 集中して細めた可愛い目（＾ ＾ / ￣ ￣）
+                ctx.beginPath();
+                ctx.arc(-eyeX, eyeY + 4, 12, 1.15 * Math.PI, 1.85 * Math.PI);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(eyeX, eyeY + 4, 12, 1.15 * Math.PI, 1.85 * Math.PI);
+                ctx.stroke();
+              }
+              // すぼめた口「ω」ふぅーっ
+              ctx.beginPath();
+              ctx.arc(0, mouthY, 8, 0, Math.PI * 2);
+              ctx.fillStyle = "#d95d78";
+              ctx.fill();
+              ctx.lineWidth = 3;
+              ctx.strokeStyle = "#2b2d42";
+              ctx.stroke();
+            } else {
+              // 通常時：ぱっちり可愛い瞳＋ちょっぴりおすまし笑顔（タップ時はモグモグ）
+              [-eyeX, eyeX].forEach((ex) => {
+                ctx.beginPath();
+                ctx.ellipse(ex, eyeY, 10.5, 13, 0, 0, Math.PI * 2);
+                ctx.fillStyle = "#2b2d42";
+                ctx.fill();
+
+                // まつげのアクセント
+                ctx.lineWidth = 3.2;
+                ctx.beginPath();
+                const dir = ex < 0 ? -1 : 1;
+                ctx.moveTo(ex + dir * 8, eyeY - 8);
+                ctx.lineTo(ex + dir * 15, eyeY - 12);
+                ctx.stroke();
+
+                // 瞳のキラッとハイライト
+                ctx.fillStyle = "#ffffff";
+                ctx.beginPath();
+                ctx.arc(ex - 3.5, eyeY - 4.5, 3.8, 0, Math.PI * 2);
+                ctx.arc(ex + 3.5, eyeY + 4.5, 1.8, 0, Math.PI * 2);
+                ctx.fill();
+              });
+
+              // 鼻のちょん
+              ctx.fillStyle = "rgba(43, 45, 66, 0.35)";
+              ctx.beginPath();
+              ctx.arc(0, headR * 0.25, 2.2, 0, Math.PI * 2);
+              ctx.fill();
+
+              // 口（モグモグ中 or おすまし笑顔）
+              ctx.strokeStyle = "#2b2d42";
+              ctx.lineWidth = 3.6;
+              if (gm.chewTimer > 0) {
+                const chewWave = Math.sin((gm.chewTimer / 0.34) * Math.PI * 3) * 4;
+                ctx.beginPath();
+                ctx.moveTo(-13, mouthY + chewWave * 0.4);
+                ctx.quadraticCurveTo(0, mouthY + 8 - chewWave, 13, mouthY + chewWave * 0.4);
+                ctx.stroke();
+              } else {
+                // ちょっと口元からガムがチラ見えする可愛い口
+                ctx.beginPath();
+                ctx.arc(0, mouthY - 4, 12, 0.18 * Math.PI, 0.82 * Math.PI);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(3, mouthY + 4, 4.2, 0, Math.PI * 2);
+                ctx.fillStyle = pal.main;
+                ctx.fill();
+              }
+            }
+
+            /* --- 4. おかっぱの前髪＆サイドの髪（ぱっつんボブ） --- */
+            // 左右の内巻きサイドバング（顔の輪郭を包むおかっぱライン）
+            ctx.fillStyle = hairColor;
+            ctx.strokeStyle = "#181720";
+            ctx.lineWidth = 4;
+
+            // 左サイド
+            ctx.beginPath();
+            ctx.moveTo(-headR * 0.86, -headR * 0.62);
+            ctx.bezierCurveTo(-headR * 1.18, -headR * 0.1, -headR * 1.16, headR * 0.58, -headR * 0.72, headR * 0.94);
+            ctx.quadraticCurveTo(-headR * 0.76, headR * 0.48, -headR * 0.82, -headR * 0.15);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // 右サイド
+            ctx.beginPath();
+            ctx.moveTo(headR * 0.86, -headR * 0.62);
+            ctx.bezierCurveTo(headR * 1.18, -headR * 0.1, headR * 1.16, headR * 0.58, headR * 0.72, headR * 0.94);
+            ctx.quadraticCurveTo(headR * 0.76, headR * 0.48, headR * 0.82, -headR * 0.15);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // ぱっつん前髪（眉上でまっすぐ切り揃え＋少しすき間）
+            const bangY = -headR * 0.22;
+            ctx.beginPath();
+            ctx.moveTo(-headR * 0.92, -headR * 0.35);
+            ctx.quadraticCurveTo(-headR * 0.92, -headR * 1.15, 0, -headR * 1.16);
+            ctx.quadraticCurveTo(headR * 0.92, -headR * 1.15, headR * 0.92, -headR * 0.35);
+            ctx.lineTo(headR * 0.84, bangY);
+            // ぱっつんライン＋わずかな毛束スリット
+            ctx.lineTo(headR * 0.38, bangY + 2);
+            ctx.lineTo(headR * 0.33, bangY - 12);
+            ctx.lineTo(headR * 0.28, bangY + 2);
+            ctx.lineTo(-headR * 0.24, bangY + 2);
+            ctx.lineTo(-headR * 0.29, bangY - 11);
+            ctx.lineTo(-headR * 0.34, bangY + 2);
+            ctx.lineTo(-headR * 0.84, bangY);
+            ctx.closePath();
+            ctx.fillStyle = hairColor;
+            ctx.fill();
+            ctx.stroke();
+
+            // 天使の輪（おかっぱのツヤハイライト）
+            ctx.save();
+            ctx.strokeStyle = hairHighlight;
+            ctx.lineWidth = 7;
+            ctx.lineCap = "round";
+            ctx.beginPath();
+            ctx.arc(0, -headR * 0.2, headR * 0.68, 1.2 * Math.PI, 1.46 * Math.PI);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(0, -headR * 0.2, headR * 0.68, 1.56 * Math.PI, 1.76 * Math.PI);
+            ctx.stroke();
+            ctx.restore();
+
+            // 可愛いクロスヘアピン（フレーバーと連動色）
+            ctx.save();
+            ctx.translate(headR * 0.56, -headR * 0.44);
+            ctx.rotate(0.22);
+            drawRoundedRect(ctx, -15, -4, 30, 8, 4);
+            ctx.fillStyle = pal.pin;
+            ctx.fill();
+            ctx.lineWidth = 2.6;
+            ctx.strokeStyle = "#2b2d42";
+            ctx.stroke();
+            ctx.restore();
+
+            // 膨らませ限界間近の冷や汗
+            if (state.alive && tension > 0.52) {
+              const alpha = clamp((tension - 0.52) / 0.25, 0, 1);
+              ctx.save();
+              ctx.globalAlpha = alpha;
+              const dropY = -headR * 0.1 + ((time * 65) % 20);
+              ctx.fillStyle = "#4cc9f0";
+              ctx.strokeStyle = "#2b2d42";
+              ctx.lineWidth = 2.2;
+              ctx.beginPath();
+              ctx.moveTo(-headR * 0.72, dropY - 10);
+              ctx.quadraticCurveTo(-headR * 0.62, dropY + 5, -headR * 0.72, dropY + 10);
+              ctx.quadraticCurveTo(-headR * 0.82, dropY + 5, -headR * 0.72, dropY - 10);
+              ctx.fill();
+              ctx.stroke();
+              ctx.restore();
+            }
+
+            /* --- 5. 膨らむ風船ガム（長押し中） --- */
+            if (state.alive && tension > 0.01) {
+              // ガム粒数が多いほどさらに巨大に膨らむ！
+              const sizeBonus = 1 + Math.min(gm.gumCount - 1, 8) * 0.07;
+              const bubbleR = (14 + Math.pow(tension, 0.85) * headR * 1.15) * sizeBonus;
+              const wobble = Math.sin(time * (14 + tension * 26)) * (1.2 + tension * 4.5);
+              const gumX = 0 + (tension > 0.7 ? (Math.random() - 0.5) * 6 : 0);
+              const gumY = mouthY + bubbleR * 0.22 + (tension > 0.7 ? (Math.random() - 0.5) * 6 : 0);
+
+              ctx.save();
+              ctx.translate(gumX, gumY);
+
+              // 限界に近づくほど膜が薄く透けてテカる
+              const rx = bubbleR + wobble;
+              const ry = bubbleR * 0.96 - wobble * 0.7;
+
+              ctx.beginPath();
+              ctx.ellipse(0, 0, Math.max(4, rx), Math.max(4, ry), 0, 0, Math.PI * 2);
+
+              const gGrad = ctx.createRadialGradient(-rx * 0.32, -ry * 0.35, rx * 0.08, 0, 0, rx * 1.12);
+              gGrad.addColorStop(0, "rgba(255, 255, 255, 0.82)");
+              gGrad.addColorStop(0.28, pal.light);
+              gGrad.addColorStop(0.75, pal.main);
+              gGrad.addColorStop(1, pal.shade);
+
+              ctx.globalAlpha = lerp(0.95, 0.78, tension);
+              ctx.fillStyle = gGrad;
+              ctx.fill();
+
+              ctx.globalAlpha = 1;
+              ctx.lineWidth = lerp(3.8, 2.6, tension);
+              ctx.strokeStyle = mixColor("#2b2d42", pal.shade, 0.35);
+              ctx.stroke();
+
+              // 風船ガムらしいぷっくりツヤ光沢
+              ctx.save();
+              ctx.translate(-rx * 0.34, -ry * 0.34);
+              ctx.rotate(-0.55);
+              ctx.fillStyle = "rgba(255, 255, 255, 0.65)";
+              ctx.beginPath();
+              ctx.ellipse(0, 0, rx * 0.14, ry * 0.28, 0, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.restore();
+
+              // 85%超えで限界のピカピカ亀裂ライン
+              if (tension > 0.82) {
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.88)";
+                ctx.lineWidth = 2.6;
+                ctx.beginPath();
+                ctx.moveTo(rx * 0.25, -ry * 0.2);
+                ctx.lineTo(rx * 0.42, -ry * 0.05);
+                ctx.lineTo(rx * 0.3, ry * 0.12);
+                ctx.stroke();
+              }
+
+              ctx.restore();
+            }
+
+            /* --- 6. 破裂後：顔面にベシャッ!!と張り付いた風船ガム --- */
+            if (!state.alive && gm.splatLobes.length > 0) {
+              const sp = gm.splatProgress; // 0→1で一気にベシャッと張り付く
+              const easeOut = 1 - Math.pow(1 - sp, 3);
+              const drip = Math.min(gm.dripPhase * 12, 16); // 時間経過でじわっと下に少し垂れる
+              const splatCenterY = headR * 0.22;
+
+              ctx.save();
+              ctx.translate(0, splatCenterY);
+              ctx.scale(lerp(1.32, 1.0, easeOut), lerp(0.68, 1.0, easeOut));
+
+              // 1) ベシャッ本体（不定形ベジェブロブ）
+              const lobes = gm.splatLobes;
+              const pts = lobes.map((lb) => {
+                const extraDrip = Math.sin(lb.ang) > 0.45 ? drip * Math.sin(lb.ang) : 0;
+                return {
+                  x: Math.cos(lb.ang) * lb.r * headR * 0.92,
+                  y: Math.sin(lb.ang) * lb.r * headR * 0.86 + extraDrip
+                };
+              });
+
+              ctx.beginPath();
+              for (let i = 0; i < pts.length; i++) {
+                const curr = pts[i];
+                const next = pts[(i + 1) % pts.length];
+                const midX = (curr.x + next.x) * 0.5;
+                const midY = (curr.y + next.y) * 0.5;
+                if (i === 0) {
+                  const prev = pts[pts.length - 1];
+                  ctx.moveTo((prev.x + curr.x) * 0.5, (prev.y + curr.y) * 0.5);
+                }
+                ctx.quadraticCurveTo(curr.x, curr.y, midX, midY);
+              }
+              ctx.closePath();
+
+              // 顔に貼り付いた少し半透明でツヤのあるガム質感
+              const splatGrad = ctx.createRadialGradient(-headR * 0.2, -headR * 0.2, 8, 0, 0, headR * 1.15);
+              splatGrad.addColorStop(0, pal.light);
+              splatGrad.addColorStop(0.55, pal.main);
+              splatGrad.addColorStop(1, pal.shade);
+              ctx.globalAlpha = 0.88;
+              ctx.fillStyle = splatGrad;
+              ctx.fill();
+              ctx.globalAlpha = 1;
+              ctx.lineWidth = 3.5;
+              ctx.strokeStyle = "#2b2d42";
+              ctx.stroke();
+
+              // 2) ガムのシワ・粘着ツヤ（ベタッと張り付いた立体感）
+              ctx.strokeStyle = "rgba(255, 255, 255, 0.55)";
+              ctx.lineWidth = 5;
+              ctx.lineCap = "round";
+              ctx.beginPath();
+              ctx.arc(-headR * 0.22, -headR * 0.14, headR * 0.24, 1.1 * Math.PI, 1.65 * Math.PI);
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.arc(headR * 0.25, headR * 0.12, headR * 0.16, 0.1 * Math.PI, 0.65 * Math.PI);
+              ctx.stroke();
+
+              // 口のあたりがうっすら透けて見える＆小さく破れた穴から片目がチラ見え！
+              ctx.beginPath();
+              ctx.ellipse(eyeX, eyeY - splatCenterY, 15, 13, -0.1, 0, Math.PI * 2);
+              ctx.fillStyle = skinColor;
+              ctx.fill();
+              ctx.lineWidth = 2.8;
+              ctx.strokeStyle = pal.shade;
+              ctx.stroke();
+
+              // 穴から覗くしょんぼり・呆然とした片目！
+              ctx.beginPath();
+              ctx.arc(eyeX, eyeY - splatCenterY, 8.5, 0, Math.PI * 2);
+              ctx.fillStyle = "#ffffff";
+              ctx.fill();
+              ctx.lineWidth = 2.5;
+              ctx.strokeStyle = "#2b2d42";
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.arc(eyeX - 1, eyeY - splatCenterY + 1, 3.2, 0, Math.PI * 2);
+              ctx.fillStyle = "#2b2d42";
+              ctx.fill();
+
+              // 3) びよーんと垂れる粘着糸と小粒ガム
+              for (const d of gm.splatDots) {
+                const dx = Math.cos(d.ang) * d.dist * headR;
+                const dy = Math.sin(d.ang) * d.dist * headR + (Math.sin(d.ang) > 0.3 ? drip * 0.5 : 0);
+
+                // 本体とつなぐ細いガムの糸
+                ctx.beginPath();
+                ctx.moveTo(dx * 0.52, dy * 0.52);
+                ctx.quadraticCurveTo(dx * 0.78, dy * 0.78 + 6, dx, dy);
+                ctx.strokeStyle = pal.main;
+                ctx.lineWidth = 3.5;
+                ctx.stroke();
+
+                // 飛び散った小粒ガム
+                ctx.save();
+                ctx.translate(dx, dy);
+                ctx.rotate(d.rot);
+                ctx.beginPath();
+                ctx.ellipse(0, 0, d.rx, d.ry, 0, 0, Math.PI * 2);
+                ctx.fillStyle = pal.main;
+                ctx.fill();
+                ctx.lineWidth = 2.4;
+                ctx.strokeStyle = "#2b2d42";
+                ctx.stroke();
+                ctx.restore();
+              }
+
+              // 4) 画面のキャラ右上にコミカルな「ガーン！」の縦線（落ち込み表現）
+              ctx.save();
+              ctx.strokeStyle = "#4895ef";
+              ctx.lineWidth = 3.2;
+              ctx.lineCap = "round";
+              for (let k = 0; k < 4; k++) {
+                const lx = headR * 0.85 + k * 7;
+                const ly = -headR * 0.95 + (k % 2) * 5;
+                ctx.beginPath();
+                ctx.moveTo(lx, ly);
+                ctx.lineTo(lx, ly + 26 + (k % 2) * 8);
+                ctx.stroke();
+              }
+              ctx.restore();
+
+              ctx.restore();
+            }
+
+            ctx.restore();
+          }
         }
       };
 
-      const OBJECT_ORDER = ["balloon", "soda"];
+      const OBJECT_ORDER = ["balloon", "soda", "gum"];
 
       /* =========================================================
        * 4. アプリ状態管理・DOM要素
@@ -2200,9 +3108,9 @@
       const statsBarEl = document.getElementById("stats-bar");
       const soundBtnEl = document.getElementById("sound-btn");
       const charSwitcherEl = document.getElementById("char-switcher");
-      const mentosHudEl = document.getElementById("mentos-hud");
-      const mentosCurrentEl = document.getElementById("mentos-current");
-      const mentosPowerTagEl = document.getElementById("mentos-power-tag");
+      const subHudEl = document.getElementById("sub-hud");
+      const subHudTextEl = document.getElementById("sub-hud-text");
+      const subPowerTagEl = document.getElementById("sub-power-tag");
       const gaugeWrapEl = document.getElementById("gauge-wrap");
       const gaugeLabelEl = document.getElementById("gauge-label");
       const gaugePercentEl = document.getElementById("gauge-percent");
@@ -2223,7 +3131,8 @@
       // キャラごとの累計カウント
       const statsByChar = {
         balloon: { action: 0, burst: 0 },
-        soda: { action: 0, burst: 0 }
+        soda: { action: 0, burst: 0 },
+        gum: { action: 0, burst: 0 }
       };
 
       function loadStats() {
@@ -2240,7 +3149,6 @@
               }
             }
           } else {
-            // v1の風船データがあれば引き継ぐ
             const rawV1 = localStorage.getItem(STORAGE_KEY_V1);
             if (rawV1) {
               const p1 = JSON.parse(rawV1);
@@ -2269,39 +3177,27 @@
         burstCountEl.textContent = st.burst.toLocaleString("ja-JP");
       }
 
-      function updateMentosHUD() {
-        if (currentObjectId !== "soda" || !state.soda) {
-          mentosHudEl.classList.remove("visible", "level-mid", "level-high");
+      function updateSubHUD() {
+        const obj = getCurrentObject();
+        const info = obj.getSubHudInfo ? obj.getSubHudInfo(state) : null;
+        if (!info) {
+          subHudEl.classList.remove("visible", "level-mid", "level-high");
           return;
         }
-        mentosHudEl.classList.add("visible");
-        const m = state.soda.mentosCount;
-        mentosCurrentEl.textContent = String(m);
-
-        mentosHudEl.classList.remove("level-mid", "level-high");
-        if (m >= 12) {
-          mentosHudEl.classList.add("level-high");
-          mentosPowerTagEl.textContent = "成層圏レベル!!";
-        } else if (m >= 8) {
-          mentosHudEl.classList.add("level-high");
-          mentosPowerTagEl.textContent = "超・大噴火!!";
-        } else if (m >= 4) {
-          mentosHudEl.classList.add("level-mid");
-          mentosPowerTagEl.textContent = "特大パワー！";
-        } else if (m >= 1) {
-          mentosHudEl.classList.add("level-mid");
-          mentosPowerTagEl.textContent = "威力UP！";
-        } else {
-          mentosPowerTagEl.textContent = "ノーマル";
-        }
+        subHudEl.classList.add("visible");
+        subHudTextEl.textContent = info.text;
+        subPowerTagEl.textContent = info.tag;
+        subHudEl.classList.remove("level-mid", "level-high");
+        if (info.level === "mid") subHudEl.classList.add("level-mid");
+        else if (info.level === "high") subHudEl.classList.add("level-high");
       }
 
-      function pulseMentosHUD() {
-        updateMentosHUD();
-        mentosHudEl.classList.remove("pop");
-        void mentosHudEl.offsetWidth;
-        mentosHudEl.classList.add("pop");
-        setTimeout(() => mentosHudEl.classList.remove("pop"), 140);
+      function pulseSubHUD() {
+        updateSubHUD();
+        subHudEl.classList.remove("pop");
+        void subHudEl.offsetWidth;
+        subHudEl.classList.add("pop");
+        setTimeout(() => subHudEl.classList.remove("pop"), 140);
       }
 
       // 物理＆アニメーション状態
@@ -2334,7 +3230,8 @@
         holdSoundTimer: 0,
 
         screenShake: 0,
-        soda: null
+        soda: null,
+        gum: null
       };
 
       const popups = [];
@@ -2389,15 +3286,15 @@
             updateStatsUI();
             saveStats();
           },
-          pulseMentosHUD,
+          pulseSubHUD,
           addPopup(text, x, y, color = "#ff2e4c", size = 34) {
             popups.push({
               text,
               x: clamp(x, 65, viewW - 65),
-              y: clamp(y, 120, viewH - 125),
+              y: clamp(y, 125, viewH - 130),
               vx: (Math.random() - 0.5) * 85,
               vy: -115 - Math.random() * 55,
-              rot: (Math.random() - 0.5) * 0.36,
+              rot: (Math.random() - 0.5) * 0.34,
               color,
               size,
               life: 0,
@@ -2412,11 +3309,13 @@
             particles.push({ ...p, life: 0 });
           },
           showBurstOverlay(ono, msg, cta) {
+            const obj = getCurrentObject();
+            burstOverlayEl.classList.toggle("pos-bottom", obj.overlayPosition === "bottom");
             burstOnoEl.textContent = ono;
             burstMsgEl.textContent = msg;
             respawnCtaEl.textContent = cta;
             burstOverlayEl.classList.add("visible");
-            hintPillEl.textContent = getCurrentObject().hud.hintDead;
+            hintPillEl.textContent = obj.hud.hintDead;
             dangerVignetteEl.style.opacity = "0";
           },
           triggerBurst() {
@@ -2462,14 +3361,15 @@
         state.pinchPull = 0;
         state.tension = 0;
         state.holdSoundTimer = 0;
+        state.soda = null;
+        state.gum = null;
 
         if (obj.initExtra) obj.initExtra(state);
-        else state.soda = null;
 
-        burstOverlayEl.classList.remove("visible");
+        burstOverlayEl.classList.remove("visible", "pos-bottom");
         dangerVignetteEl.style.opacity = "0";
         hintPillEl.textContent = obj.hud.hintAlive;
-        updateMentosHUD();
+        updateSubHUD();
         if (playSound) SoundEngine.playSpawn();
       }
 
@@ -2482,8 +3382,7 @@
         currentObjectId = newId;
         const obj = getCurrentObject();
 
-        // 背景テーマ・タブ選択状態を更新
-        document.body.classList.remove("mode-balloon", "mode-soda");
+        document.body.classList.remove("mode-balloon", "mode-soda", "mode-gum");
         if (obj.bodyClass) document.body.classList.add(obj.bodyClass);
 
         for (const btn of charSwitcherEl.querySelectorAll(".char-tab")) {
@@ -2492,7 +3391,6 @@
           btn.setAttribute("aria-selected", String(isActive));
         }
 
-        // 前キャラの演出パーティクルをクリアして切り替え
         popups.length = 0;
         shockwaves.length = 0;
         particles.length = 0;
@@ -2682,7 +3580,6 @@
           state.spawnScale = Math.min(1, state.spawnScale + dt * 5.8);
         }
 
-        // ホールド中で炭酸ボトルを振っている最中以外はバネ復帰を適用
         const directShake = currentObjectId === "soda" && state.isHolding && state.alive;
         if (!directShake) {
           const ax = -k * state.offsetX - d * state.velX;
@@ -2778,21 +3675,22 @@
         }
 
         // 地面のやわらかい影
-        if (state.alive || currentObjectId === "soda") {
+        if (state.alive || currentObjectId === "soda" || currentObjectId === "gum") {
           const shadowScale = clamp(1 - state.offsetY / 420, 0.65, 1.25) * state.spawnScale;
-          const shadowY = currentObjectId === "soda"
-            ? centerY + baseRadius * 1.18
-            : centerY + baseRadius * 1.62;
+          let shadowY = centerY + baseRadius * 1.62;
+          if (currentObjectId === "soda") shadowY = centerY + baseRadius * 1.18;
+          else if (currentObjectId === "gum") shadowY = centerY + baseRadius * 1.24;
+
           ctx.save();
           ctx.beginPath();
           ctx.ellipse(
             centerX + state.offsetX * 0.45,
             shadowY,
-            baseRadius * 0.62 * shadowScale,
+            baseRadius * 0.66 * shadowScale,
             baseRadius * 0.14 * shadowScale,
             0, 0, Math.PI * 2
           );
-          ctx.fillStyle = "rgba(43, 45, 66, 0.11)";
+          ctx.fillStyle = "rgba(43, 45, 66, 0.1)";
           ctx.fill();
           ctx.restore();
         }
