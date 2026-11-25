@@ -411,7 +411,7 @@
     /* 顔やボトルを隠さない下部寄り配置モード（風船ガム用） */
     #burst-overlay.pos-bottom {
       justify-content: flex-end;
-      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 114px);
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 104px);
     }
 
     #burst-overlay.visible {
@@ -420,12 +420,25 @@
     }
 
     .burst-badge {
-      background: rgba(255, 255, 255, 0.94);
+      position: relative;
+      background: rgba(255, 255, 255, 0.96);
       border: 4px solid var(--ink);
       border-radius: 24px;
       padding: 15px 24px;
       box-shadow: 0 9px 0 rgba(43, 45, 66, 0.16);
       max-width: 88vw;
+    }
+
+    .speech-tail {
+      display: none;
+      position: absolute;
+      top: -22px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 44px;
+      height: 26px;
+      overflow: visible;
+      pointer-events: none;
     }
 
     .burst-onomatopoeia {
@@ -443,7 +456,7 @@
       font-weight: 800;
       color: var(--ink);
       margin-bottom: 12px;
-      line-height: 1.35;
+      line-height: 1.38;
     }
 
     .respawn-cta {
@@ -456,6 +469,56 @@
       border-radius: 999px;
       box-shadow: 0 4px 0 #c93338;
       animation: bounceCta 1.1s ease-in-out infinite;
+    }
+
+    .respawn-cta-outside {
+      display: none;
+      margin-top: 12px;
+    }
+
+    /* 漫画風のしゃべる吹き出しモード（風船ガム用） */
+    #burst-overlay.speech-mode .burst-badge {
+      border-radius: 30px;
+      padding: 14px 22px 16px;
+      min-width: min(260px, 82vw);
+      max-width: min(330px, 88vw);
+      background: #ffffff;
+      box-shadow: 0 8px 0 rgba(43, 45, 66, 0.14);
+      animation: bubblePop 0.32s cubic-bezier(0.22, 1.5, 0.36, 1);
+    }
+
+    @keyframes bubblePop {
+      0% { transform: scale(0.72) translateY(-10px); }
+      100% { transform: scale(1) translateY(0); }
+    }
+
+    #burst-overlay.speech-mode .speech-tail {
+      display: block;
+    }
+
+    #burst-overlay.speech-mode .burst-onomatopoeia {
+      font-size: 20px;
+      margin-bottom: 4px;
+      letter-spacing: 0.05em;
+    }
+
+    #burst-overlay.speech-mode .burst-message {
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--ink);
+      margin-bottom: 0;
+      min-height: 2.75em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #burst-overlay.speech-mode .respawn-cta-inside {
+      display: none;
+    }
+
+    #burst-overlay.speech-mode .respawn-cta-outside {
+      display: inline-block;
     }
 
     @keyframes bounceCta {
@@ -507,10 +570,15 @@
   <!-- 破裂・噴射・ベシャッ時のコミカルなメッセージ＆ワンタップ復活案内 -->
   <div id="burst-overlay" aria-live="polite">
     <div class="burst-badge">
+      <svg class="speech-tail" viewBox="0 0 44 26" aria-hidden="true">
+        <path d="M 8 25 Q 17 15 15 2 Q 28 13 36 25 Z" fill="#ffffff" stroke="#2b2d42" stroke-width="4" stroke-linejoin="round" />
+        <rect x="4" y="21" width="36" height="7" fill="#ffffff" />
+      </svg>
       <div id="burst-onomatopoeia" class="burst-onomatopoeia">パンッ!!</div>
       <div id="burst-message" class="burst-message">スッキリした？</div>
-      <div id="respawn-cta" class="respawn-cta">タップで新しい風船を出す</div>
+      <div id="respawn-cta" class="respawn-cta respawn-cta-inside">タップで新しい風船を出す</div>
     </div>
+    <div id="respawn-cta-outside" class="respawn-cta respawn-cta-outside">タップでベリッと剥がす</div>
   </div>
 
   <!-- 下部ゲージと操作ガイド -->
@@ -1133,6 +1201,30 @@
           sqGain.connect(ctx.destination);
           squish.start(splatAt);
           squish.stop(splatAt + 0.22);
+        },
+
+        // 【風船ガム】吹き出しでしゃべるコミカルなトーク音
+        playVoiceBlip() {
+          if (!this.enabled) return;
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          const now = ctx.currentTime;
+          const freq = 520 + Math.random() * 210;
+
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(freq, now);
+          osc.frequency.exponentialRampToValueAtTime(freq * 1.12, now + 0.032);
+
+          gain.gain.setValueAtTime(0.001, now);
+          gain.gain.linearRampToValueAtTime(0.085, now + 0.006);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.042);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.048);
         },
 
         // 復活音「ポンッ！」
@@ -2343,6 +2435,7 @@
           tabIcon: "🫧",
           bodyClass: "mode-gum",
           overlayPosition: "bottom", // ベシャッとした顔をしっかり見せるため下部表示
+          overlayStyle: "speech",    // 吹き出しでしゃべる表示
           hud: {
             actionIcon: "🍬",
             actionLabel: "モグモグ",
@@ -2372,15 +2465,19 @@
             holdCry: ["ふぅ〜…", "ぷくぅ〜っ！", "でっかくなってきた…", "ヤバい！割れそうッ!!"],
             splatWord: "ベシャッ!!",
             splatMessagesNormal: [
-              "あーあ、顔じゅうベタベタ…！",
-              "前髪にくっついちゃったんですけど！？",
-              "うわぁ…目が見えないぃ！",
-              "やりすぎ！ベッタベタじゃん！"
+              "「うわぁ〜！顔じゅうベッタベタやんか！」",
+              "「ちょ、前髪にくっついてもーたやん！」",
+              "「なんやこれ、前ぜんぜん見えへんねんけど！」",
+              "「やりすぎやて！どないしてくれるん！？」",
+              "「あーあ、めっちゃ恥ずかしいやんか〜！」",
+              "「うそやん…ほっぺたまでベタベタやわ！」"
             ],
             splatMessagesMega: [
-              "ガム入れすぎ!! 顔面ぜんぶ封印された！",
-              "特大ベシャッ!! おかっぱ全滅レベル!!",
-              "もう一生取れない気がする…！"
+              "「ガム入れすぎやっちゅうねん！顔面ぜんぶ封印されたわ！」",
+              "「うそやろ！？おかっぱ全滅レベルやんか〜！」",
+              "「これ一生取れへんやつやん！アホか〜！」",
+              "「なんぼほど入れんねん！前も後ろもわからんわ！」",
+              "「ベッタベタにもほどがあるでホンマ！」"
             ],
             respawnLabel: "タップでベリッと剥がす"
           },
@@ -3120,7 +3217,16 @@
       const burstOnoEl = document.getElementById("burst-onomatopoeia");
       const burstMsgEl = document.getElementById("burst-message");
       const respawnCtaEl = document.getElementById("respawn-cta");
+      const respawnCtaOutsideEl = document.getElementById("respawn-cta-outside");
       const hintPillEl = document.getElementById("hint-pill");
+      let speechTypeTimer = null;
+
+      function stopSpeechTyping() {
+        if (speechTypeTimer !== null) {
+          clearInterval(speechTypeTimer);
+          speechTypeTimer = null;
+        }
+      }
 
       const STORAGE_KEY_V2 = "stress_pop_stats_v2";
       const STORAGE_KEY_V1 = "stress_balloon_stats_v1";
@@ -3309,14 +3415,37 @@
             particles.push({ ...p, life: 0 });
           },
           showBurstOverlay(ono, msg, cta) {
+            stopSpeechTyping();
             const obj = getCurrentObject();
+            const isSpeech = obj.overlayStyle === "speech";
             burstOverlayEl.classList.toggle("pos-bottom", obj.overlayPosition === "bottom");
+            burstOverlayEl.classList.toggle("speech-mode", isSpeech);
             burstOnoEl.textContent = ono;
-            burstMsgEl.textContent = msg;
             respawnCtaEl.textContent = cta;
+            respawnCtaOutsideEl.textContent = cta;
             burstOverlayEl.classList.add("visible");
             hintPillEl.textContent = obj.hud.hintDead;
             dangerVignetteEl.style.opacity = "0";
+
+            if (isSpeech) {
+              // 吹き出しで1文字ずつしゃべるように表示
+              const chars = Array.from(msg);
+              let idx = 0;
+              burstMsgEl.textContent = "";
+              speechTypeTimer = setInterval(() => {
+                idx += 1;
+                burstMsgEl.textContent = chars.slice(0, idx).join("");
+                const ch = chars[idx - 1];
+                if (idx % 2 === 1 && ch && !/[「」、。！？…〜!\?]/.test(ch)) {
+                  SoundEngine.playVoiceBlip();
+                }
+                if (idx >= chars.length) {
+                  stopSpeechTyping();
+                }
+              }, 36);
+            } else {
+              burstMsgEl.textContent = msg;
+            }
           },
           triggerBurst() {
             triggerBurst();
@@ -3366,7 +3495,8 @@
 
         if (obj.initExtra) obj.initExtra(state);
 
-        burstOverlayEl.classList.remove("visible", "pos-bottom");
+        stopSpeechTyping();
+        burstOverlayEl.classList.remove("visible", "pos-bottom", "speech-mode");
         dangerVignetteEl.style.opacity = "0";
         hintPillEl.textContent = obj.hud.hintAlive;
         updateSubHUD();
