@@ -392,13 +392,12 @@
       }
 
       function mixColor(hexA, hexB, t) {
-        const ct = clamp(t, 0, 1);
         const a = hexToRgb(hexA);
         const b = hexToRgb(hexB);
-        const r = Math.round(lerp(a.r, b.r, ct));
-        const g = Math.round(lerp(a.g, b.g, ct));
-        const bl = Math.round(lerp(a.b, b.b, ct));
-        return `#${((1 << 24) + (r << 16) + (g << 8) + bl).toString(16).slice(1)}`;
+        const r = Math.round(lerp(a.r, b.r, t));
+        const g = Math.round(lerp(a.g, b.g, t));
+        const bl = Math.round(lerp(a.b, b.b, t));
+        return `rgb(${r}, ${g}, ${bl})`;
       }
 
       /* =========================================================
@@ -433,6 +432,7 @@
         unlock() {
           const ctx = this.ensureContext();
           if (!ctx) return;
+          // iOS Safari向けに無音ノードを一瞬再生して確実にアンロック
           try {
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
@@ -452,6 +452,7 @@
           const now = ctx.currentTime;
           const jitter = (0.9 + Math.random() * 0.24) * pitchBase;
 
+          // 低音の打撃「ボコッ」
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = "triangle";
@@ -468,6 +469,7 @@
           osc.start(now);
           osc.stop(now + 0.2);
 
+          // 表面を叩く「パシッ」ノイズ
           if (this.noiseBuffer) {
             const noise = ctx.createBufferSource();
             noise.buffer = this.noiseBuffer;
@@ -553,6 +555,7 @@
           if (!ctx) return;
           const now = ctx.currentTime;
 
+          // 鋭い空気破裂ノイズ
           if (this.noiseBuffer) {
             const noise = ctx.createBufferSource();
             noise.buffer = this.noiseBuffer;
@@ -573,6 +576,7 @@
             noise.stop(now + 0.26);
           }
 
+          // 腹に響く「ドンッ！」の芯
           const sub = ctx.createOscillator();
           const subGain = ctx.createGain();
           sub.type = "sine";
@@ -622,6 +626,7 @@
         balloon: {
           id: "balloon",
           name: "風船",
+          // 復活ごとに選ばれるポップなカラーパレット
           colors: [
             { main: "#ff595e", shade: "#d9383e", highlight: "rgba(255,255,255,0.48)" },
             { main: "#1982c4", shade: "#115e91", highlight: "rgba(255,255,255,0.45)" },
@@ -653,22 +658,27 @@
             ],
             respawnLabel: "タップで新しい風船を出す"
           },
+          // 風船の描画（へこみ・伸び・震え・表情・紐をすべて描画）
           render(ctx, state, env) {
             const { cx, cy, baseR, time } = env;
             const palette = state.palette;
             const tension = state.tension;
 
+            // テンションに応じて赤く染まる
             const fillColor = mixColor(palette.main, this.dangerColor, Math.pow(tension, 1.3));
             const shadeColor = mixColor(palette.shade, this.dangerShade, Math.pow(tension, 1.3));
 
+            // 限界が近づくほど激しくブルブル震える
             const shakeAmp = tension > 0.05 ? (2 + tension * tension * 14) : 0;
             const shakeX = shakeAmp ? (Math.random() - 0.5) * 2 * shakeAmp : 0;
             const shakeY = shakeAmp ? (Math.random() - 0.5) * 2 * shakeAmp : 0;
 
+            // 呼吸するようにほんのり浮遊
             const floatY = Math.sin(time * 2.4) * 6;
             const posX = cx + state.offsetX + shakeX;
             const posY = cy - baseR * 0.08 + floatY + state.offsetY + shakeY;
 
+            // つねりによる膨張＋バネ変形
             const swell = 1 + tension * 0.22;
             const sx = state.scaleX * swell * state.spawnScale;
             const sy = state.scaleY * swell * state.spawnScale;
@@ -703,7 +713,7 @@
             ctx.strokeStyle = "#2b2d42";
             ctx.stroke();
 
-            // --- 3. 風船本体（へこみ＆つねり伸びをリアルタイム計算） ---
+            // --- 3. 風船本体（極座標メッシュでへこみ＆つねり伸びをリアルタイム計算） ---
             const points = 56;
             ctx.beginPath();
             for (let i = 0; i <= points; i++) {
@@ -711,6 +721,7 @@
               const cosA = Math.cos(angle);
               const sinA = Math.sin(angle);
 
+              // 基本の風船シルエット（上が少しふっくら、下がややすぼむ）
               let rx = baseR * 0.94;
               let ry = baseR * 1.12;
               if (sinA > 0) {
@@ -727,6 +738,7 @@
                 const diff = Math.atan2(Math.sin(angle - state.dentAngle), Math.cos(angle - state.dentAngle));
                 const influence = Math.exp(-(diff * diff) / 0.32);
                 const push = 1 - state.dentAmount * 0.42 * influence;
+                // 反対側は体積保存っぽくわずかに膨らむ
                 const oppDiff = Math.atan2(Math.sin(angle - (state.dentAngle + Math.PI)), Math.cos(angle - (state.dentAngle + Math.PI)));
                 const bulge = 1 + state.dentAmount * 0.14 * Math.exp(-(oppDiff * oppDiff) / 0.7);
                 px *= push * bulge;
@@ -736,6 +748,7 @@
               // つねられた方向へ「ぐにゃっと伸びる」変形
               if (state.pinchPull > 0.005) {
                 const diff = Math.atan2(Math.sin(angle - state.pinchAngle), Math.cos(angle - state.pinchAngle));
+                // つまんだ先端が鋭く伸び、すぐ両脇が少し細くくびれる
                 const tip = Math.exp(-(diff * diff) / 0.14);
                 const neck = Math.exp(-((Math.abs(diff) - 0.52) ** 2) / 0.09);
                 const stretch = 1 + state.pinchPull * (0.58 * tip - 0.11 * neck);
@@ -748,6 +761,7 @@
             }
             ctx.closePath();
 
+            // 立体グラデーション
             const grad = ctx.createRadialGradient(-baseR * 0.3, -baseR * 0.38, baseR * 0.12, 0, 0, baseR * 1.35);
             grad.addColorStop(0, mixColor(fillColor, "#ffffff", 0.25));
             grad.addColorStop(0.55, fillColor);
@@ -755,6 +769,7 @@
             ctx.fillStyle = grad;
             ctx.fill();
 
+            // コミカルな太めの輪郭線
             ctx.lineWidth = 4.5;
             ctx.strokeStyle = "#2b2d42";
             ctx.stroke();
@@ -780,6 +795,7 @@
               const alpha = clamp((tension - 0.35) / 0.3, 0, 1);
               ctx.save();
               ctx.globalAlpha = alpha;
+              // 飛び出す汗のしずく
               const dropY = -baseR * 0.48 + ((time * 70) % 24);
               ctx.fillStyle = "#4cc9f0";
               ctx.strokeStyle = "#2b2d42";
@@ -794,6 +810,7 @@
             }
 
             if (tension > 0.65) {
+              // ぴきっ！の青筋（血管マーク）
               ctx.save();
               ctx.translate(baseR * 0.36, -baseR * 0.54);
               const pulse = 1 + Math.sin(time * 28) * 0.14;
@@ -830,17 +847,19 @@
             if (state.hurtTimer > 0) {
               // 殴られた直後の「＞ ＜」顔
               ctx.lineWidth = 5;
+              // 左目 ＞
               ctx.beginPath();
               ctx.moveTo(-eyeX - 11, eyeY - 10);
               ctx.lineTo(-eyeX + 9, eyeY);
               ctx.lineTo(-eyeX - 11, eyeY + 10);
               ctx.stroke();
+              // 右目 ＜
               ctx.beginPath();
               ctx.moveTo(eyeX + 11, eyeY - 10);
               ctx.lineTo(eyeX - 9, eyeY);
               ctx.lineTo(eyeX + 11, eyeY + 10);
               ctx.stroke();
-
+              // 叫び口
               ctx.beginPath();
               ctx.ellipse(0, baseR * 0.24, baseR * 0.14, baseR * 0.17, 0, 0, Math.PI * 2);
               ctx.fillStyle = "#2b2d42";
@@ -850,10 +869,11 @@
               ctx.fillStyle = "#ff8fa3";
               ctx.fill();
             } else if (state.isPinching || state.tension > 0.22) {
-              // つねられて必死な顔
+              // つねられて必死な顔（テンションが上がるほど震える）
               const t = state.tension;
               ctx.lineWidth = 4.5;
               if (t > 0.65) {
+                // 限界ギリギリの「◎ ◎」ぐるぐる・見開き目
                 [-eyeX, eyeX].forEach((x) => {
                   ctx.beginPath();
                   ctx.arc(x, eyeY, 13, 0, Math.PI * 2);
@@ -866,6 +886,7 @@
                   ctx.fill();
                 });
               } else {
+                // ぎゅっと目をつぶる「＞ ＜」気味
                 ctx.beginPath();
                 ctx.moveTo(-eyeX - 10, eyeY - 7);
                 ctx.lineTo(-eyeX + 8, eyeY + 1);
@@ -875,6 +896,7 @@
                 ctx.lineTo(eyeX + 9, eyeY + 8);
                 ctx.stroke();
               }
+              // ぐにゃぐにゃ震える口
               ctx.beginPath();
               const mouthY = baseR * 0.24;
               ctx.moveTo(-22, mouthY);
@@ -882,24 +904,27 @@
               ctx.quadraticCurveTo(11, mouthY + 14 + t * 6, 22, mouthY);
               ctx.stroke();
             } else {
-              // 通常時のニコニコ顔
+              // 通常時のちょっぴり挑発的で可愛い笑顔
               ctx.beginPath();
               ctx.arc(-eyeX, eyeY, 7.5, 0, Math.PI * 2);
               ctx.arc(eyeX, eyeY, 7.5, 0, Math.PI * 2);
               ctx.fill();
 
+              // 目のハイライト
               ctx.fillStyle = "#ffffff";
               ctx.beginPath();
               ctx.arc(-eyeX - 2.5, eyeY - 2.5, 2.6, 0, Math.PI * 2);
               ctx.arc(eyeX - 2.5, eyeY - 2.5, 2.6, 0, Math.PI * 2);
               ctx.fill();
 
+              // ほっぺ
               ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
               ctx.beginPath();
               ctx.ellipse(-eyeX - 10, eyeY + 18, 10, 6, 0, 0, Math.PI * 2);
               ctx.ellipse(eyeX + 10, eyeY + 18, 10, 6, 0, 0, Math.PI * 2);
               ctx.fill();
 
+              // にっこり口
               ctx.lineWidth = 4.5;
               ctx.beginPath();
               ctx.arc(0, baseR * 0.14, baseR * 0.15, 0.18 * Math.PI, 0.82 * Math.PI);
@@ -965,6 +990,7 @@
         paletteIndex: 0,
         palette: OBJECT_CATALOG.balloon.colors[0],
 
+        // バネ振動（位置・伸縮・回転）
         offsetX: 0,
         offsetY: 0,
         velX: 0,
@@ -977,19 +1003,23 @@
         velRot: 0,
         spawnScale: 1,
 
+        // 殴るへこみ
         dentAmount: 0,
         dentAngle: 0,
         hurtTimer: 0,
 
+        // つねる状態
         isPinching: false,
         pinchPull: 0,
         pinchAngle: 0,
         tension: 0,
         creakTimer: 0,
 
+        // 画面シェイク
         screenShake: 0
       };
 
+      // エフェクト配列（擬音ポップアップ、衝撃波、パーティクル）
       const popups = [];
       const shockwaves = [];
       const particles = [];
@@ -1005,6 +1035,7 @@
         longPressTimer: null
       };
 
+      // レイアウト計算用
       let viewW = window.innerWidth;
       let viewH = window.innerHeight;
       let dpr = Math.min(window.devicePixelRatio || 1, 2.5);
@@ -1046,6 +1077,7 @@
       }
 
       function spawnPunchEffects(x, y, obj) {
+        // 衝撃リング
         shockwaves.push({
           x,
           y,
@@ -1056,6 +1088,7 @@
           color: "#ff9f1c"
         });
 
+        // 漫画風スパーク＆星
         const sparkColors = ["#ffbe0b", "#ff595e", "#ffffff", "#fb5607"];
         for (let i = 0; i < 12; i++) {
           const ang = (Math.PI * 2 * i) / 12 + (Math.random() - 0.5) * 0.35;
@@ -1076,6 +1109,7 @@
           });
         }
 
+        // 擬音ポップアップ
         const word = pick(obj.texts.punchWords);
         const popColor = pick(["#ff2e4c", "#ff6d00", "#d90429", "#7209b7"]);
         spawnPopup(word, x + (Math.random() - 0.5) * 34, y - 24, popColor, 34 + Math.random() * 8);
@@ -1085,14 +1119,17 @@
         if (!state.alive) return;
         const obj = getCurrentObject();
 
+        // タップ位置から風船中心への角度を算出
         const dx = x - centerX;
         const dy = y - centerY;
         const angle = Math.atan2(dy, dx);
 
+        // へこみ＆ボヨン衝撃
         state.dentAngle = angle;
         state.dentAmount = 1.0;
         state.hurtTimer = 0.28;
 
+        // 叩かれた反対方向へ強く弾き飛ばすようなバネ速度
         const dirX = Math.cos(angle);
         const dirY = Math.sin(angle);
         state.velX += -dirX * 420 + (Math.random() - 0.5) * 140;
@@ -1102,6 +1139,7 @@
         state.velRot += (dx >= 0 ? -1 : 1) * (4.2 + Math.random() * 2.5);
         state.screenShake = Math.max(state.screenShake, 5);
 
+        // カウント加算＆効果音
         stats.punches += 1;
         updateStatsUI();
         saveStats();
@@ -1114,7 +1152,7 @@
         if (!state.alive) return;
         state.isPinching = true;
         state.pinchAngle = Math.atan2(y - centerY, x - centerX);
-        state.creakTimer = 0;
+        state.creakTimer = 0; // 即座に最初のきしみ音を鳴らす
       }
 
       function updatePinchTarget(x, y) {
@@ -1128,6 +1166,7 @@
         state.isPinching = false;
 
         if (state.alive && prevTension > 0.06) {
+          // 途中で離したときは大きくビヨーンと跳ね返る
           const dirX = Math.cos(state.pinchAngle);
           const dirY = Math.sin(state.pinchAngle);
           state.velX += -dirX * (300 + prevTension * 480);
@@ -1155,6 +1194,7 @@
 
         SoundEngine.playBurst();
 
+        // 派手な破裂リング
         shockwaves.push({
           x: centerX,
           y: centerY,
@@ -1165,6 +1205,7 @@
           color: "#ff2e4c"
         });
 
+        // ゴムの破片＋紙吹雪を大量に弾け飛ばす
         const burstColors = [state.palette.main, "#ff1738", "#ffd166", "#06d6a0", "#4cc9f0", "#ffffff"];
         for (let i = 0; i < 48; i++) {
           const ang = Math.random() * Math.PI * 2;
@@ -1185,6 +1226,7 @@
           });
         }
 
+        // コミカルな破裂メッセージ表示
         burstOnoEl.textContent = obj.texts.burstWord;
         burstMsgEl.textContent = pick(obj.texts.burstMessages);
         respawnCtaEl.textContent = obj.texts.respawnLabel;
@@ -1195,6 +1237,7 @@
 
       function respawnObject() {
         const obj = getCurrentObject();
+        // 前回と違う色を選んでリフレッシュ感を出す
         const nextIdx = (state.paletteIndex + 1 + Math.floor(Math.random() * (obj.colors.length - 1))) % obj.colors.length;
         state.paletteIndex = nextIdx;
         state.palette = obj.colors[nextIdx];
@@ -1237,6 +1280,7 @@
         e.preventDefault();
         SoundEngine.unlock();
 
+        // 割れた状態ならクールダウン経過後にワンタップ復活
         if (!state.alive) {
           if (performance.now() >= state.respawnReadyAt) {
             respawnObject();
@@ -1244,6 +1288,7 @@
           return;
         }
 
+        // すでに別ポインターで処理中ならリセット
         clearLongPressTimer();
         pointer.active = true;
         pointer.id = e.pointerId;
@@ -1255,9 +1300,11 @@
           canvas.setPointerCapture(e.pointerId);
         } catch (_) {}
 
+        // 触れた瞬間にわずかな押し込み反応（レスポンスの気持ちよさ向上）
         state.velScaleX += 0.9;
         state.velScaleY -= 0.9;
 
+        // 一定時間押し続けたら「つねる」へ移行
         pointer.longPressTimer = setTimeout(() => {
           pointer.longPressTimer = null;
           if (pointer.active && state.alive) {
@@ -1295,6 +1342,7 @@
         if (wasPinching) {
           stopPinch(e.type !== "pointercancel");
         } else if (e.type === "pointerup" && elapsed < LONG_PRESS_MS + 40 && state.alive) {
+          // 短押し＝「殴る」
           triggerPunch(upX, upY);
         }
       }
@@ -1304,7 +1352,7 @@
       canvas.addEventListener("pointerup", handlePointerUpOrCancel, { passive: false });
       canvas.addEventListener("pointercancel", handlePointerUpOrCancel, { passive: false });
 
-      // iOS Safariのダブルタップズーム・長押しメニュー・ピンチ拡大を防止
+      // iOS Safariのダブルタップズーム・長押しメニュー・ピンチ拡大を徹底ガード
       canvas.addEventListener("touchstart", (e) => e.preventDefault(), { passive: false });
       document.addEventListener("contextmenu", (e) => e.preventDefault());
       document.addEventListener("gesturestart", (e) => e.preventDefault(), { passive: false });
@@ -1315,6 +1363,7 @@
         stopPinch(false);
       });
 
+      // ミュート切替ボタン
       soundBtnEl.addEventListener("click", (e) => {
         e.stopPropagation();
         SoundEngine.enabled = !SoundEngine.enabled;
@@ -1326,6 +1375,7 @@
         }
       });
 
+      // カウンター部分をタップすると確認つきでリセット可能
       statsBarEl.addEventListener("click", (e) => {
         e.stopPropagation();
         if (stats.punches === 0 && stats.bursts === 0) return;
@@ -1359,6 +1409,7 @@
           gaugeLabelEl.textContent = "🤏 つねり限界ゲージ";
         }
 
+        // 画面端の赤い緊張ビネット
         if (state.alive && state.tension > 0.35) {
           const vAlpha = clamp((state.tension - 0.35) / 0.65, 0, 1);
           dangerVignetteEl.style.opacity = String(vAlpha * 0.9);
@@ -1371,10 +1422,12 @@
         const k = obj.physics.springK;
         const d = obj.physics.damping;
 
+        // 復活時のポップイン補間
         if (state.spawnScale < 1) {
           state.spawnScale = Math.min(1, state.spawnScale + dt * 5.8);
         }
 
+        // 位置のバネ減衰
         const ax = -k * state.offsetX - d * state.velX;
         const ay = -k * state.offsetY - d * state.velY;
         state.velX += ax * dt;
@@ -1382,6 +1435,7 @@
         state.offsetX += state.velX * dt;
         state.offsetY += state.velY * dt;
 
+        // スケールのボヨンボヨン減衰
         const asx = -k * 1.15 * (state.scaleX - 1) - d * 0.9 * state.velScaleX;
         const asy = -k * 1.15 * (state.scaleY - 1) - d * 0.9 * state.velScaleY;
         state.velScaleX += asx * dt;
@@ -1389,24 +1443,29 @@
         state.scaleX = clamp(state.scaleX + state.velScaleX * dt, 0.58, 1.5);
         state.scaleY = clamp(state.scaleY + state.velScaleY * dt, 0.58, 1.5);
 
+        // 回転の減衰
         const aRot = -k * 0.85 * state.rot - d * 0.85 * state.velRot;
         state.velRot += aRot * dt;
         state.rot = clamp(state.rot + state.velRot * dt, -0.55, 0.55);
 
+        // へこみ＆ダメージ顔の回復
         state.dentAmount = Math.max(0, state.dentAmount - dt * 4.4);
         state.hurtTimer = Math.max(0, state.hurtTimer - dt);
 
+        // つねりテンション＆きしみ音の制御
         if (state.alive) {
           if (state.isPinching) {
             state.tension = clamp(state.tension + dt / obj.physics.pinchDuration, 0, 1);
             state.pinchPull = lerp(state.pinchPull, 0.35 + state.tension * 0.75, clamp(dt * 12, 0, 1));
 
+            // テンションが上がるほど間隔が短くなる「キュッ！ギュー！」きしみ音
             state.creakTimer -= dt;
             if (state.creakTimer <= 0) {
               SoundEngine.playPinchCreak(state.tension);
               state.creakTimer = lerp(0.24, 0.085, state.tension);
             }
 
+            // 限界突破で破裂！
             if (state.tension >= 1) {
               triggerBurst();
             }
@@ -1416,14 +1475,17 @@
           }
         }
 
+        // 画面シェイク減衰
         state.screenShake = Math.max(0, state.screenShake - dt * 52);
 
+        // 衝撃波更新
         for (let i = shockwaves.length - 1; i >= 0; i--) {
           const sw = shockwaves[i];
           sw.life += dt;
           if (sw.life >= sw.maxLife) shockwaves.splice(i, 1);
         }
 
+        // パーティクル更新
         for (let i = particles.length - 1; i >= 0; i--) {
           const p = particles[i];
           p.life += dt;
@@ -1438,6 +1500,7 @@
           p.rot += p.vRot * dt;
         }
 
+        // 擬音ポップアップ更新
         for (let i = popups.length - 1; i >= 0; i--) {
           const pop = popups[i];
           pop.life += dt;
@@ -1468,12 +1531,14 @@
         ctx.clearRect(0, 0, viewW, viewH);
 
         ctx.save();
+        // 画面シェイク適用
         if (state.screenShake > 0.2) {
           const sx = (Math.random() - 0.5) * 2 * state.screenShake;
           const sy = (Math.random() - 0.5) * 2 * state.screenShake;
           ctx.translate(sx, sy);
         }
 
+        // 地面のやわらかい影
         if (state.alive) {
           const shadowScale = clamp(1 - state.offsetY / 420, 0.65, 1.25) * state.spawnScale;
           ctx.save();
@@ -1490,6 +1555,7 @@
           ctx.restore();
         }
 
+        // メイン物体の描画
         if (state.alive) {
           obj.render(ctx, state, {
             cx: centerX,
@@ -1499,6 +1565,7 @@
           });
         }
 
+        // 衝撃リングの描画
         for (const sw of shockwaves) {
           const t = sw.life / sw.maxLife;
           const r = lerp(sw.r, sw.maxR, 1 - Math.pow(1 - t, 3));
@@ -1512,6 +1579,7 @@
           ctx.restore();
         }
 
+        // パーティクル（スパーク・破片・星・紙吹雪）
         for (const p of particles) {
           const t = p.life / p.maxLife;
           ctx.save();
@@ -1527,6 +1595,7 @@
             ctx.fill();
             ctx.stroke();
           } else if (p.kind === "shard") {
+            // ゴム片（三角形〜リボン風）
             ctx.beginPath();
             ctx.moveTo(-p.size, -p.size * 0.35);
             ctx.quadraticCurveTo(0, -p.size * 0.8, p.size, 0);
@@ -1548,6 +1617,7 @@
           ctx.restore();
         }
 
+        // コミカルな擬音ポップアップ
         for (const pop of popups) {
           const t = pop.life / pop.maxLife;
           const scale = t < 0.18 ? lerp(0.4, 1.18, t / 0.18) : lerp(1.18, 0.96, (t - 0.18) / 0.82);
@@ -1564,6 +1634,7 @@
           ctx.textBaseline = "middle";
           ctx.lineJoin = "round";
 
+          // 白いフチ＋濃い影＋ビビッドな文字色
           ctx.lineWidth = 8;
           ctx.strokeStyle = "#ffffff";
           ctx.strokeText(pop.text, 0, 0);
