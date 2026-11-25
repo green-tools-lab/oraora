@@ -1,0 +1,1645 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="ストレス風船" />
+  <meta name="theme-color" content="#fff6e9" />
+  <title>ボコッと！ストレス風船</title>
+  <link id="app-icon" rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23fff3df'/%3E%3Cellipse cx='90' cy='80' rx='52' ry='62' fill='%23ff5a5f'/%3E%3Cellipse cx='72' cy='58' rx='12' ry='22' transform='rotate(-20 72 58)' fill='rgba(255,255,255,0.45)'/%3E%3Cpolygon points='82,140 98,140 90,150' fill='%23ff5a5f'/%3E%3Ccircle cx='74' cy='78' r='6' fill='%232b2d42'/%3E%3Ccircle cx='106' cy='78' r='6' fill='%232b2d42'/%3E%3Cpath d='M78 98 Q90 108 102 98' stroke='%232b2d42' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <style>
+    :root {
+      --bg-top: #fff9ef;
+      --bg-bottom: #ffe8cc;
+      --ink: #2b2d42;
+      --panel-bg: rgba(255, 255, 255, 0.82);
+      --panel-border: rgba(43, 45, 66, 0.12);
+      --accent: #ff595e;
+      --accent-green: #52b788;
+      --gauge-bg: rgba(43, 45, 66, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      position: fixed;
+      inset: 0;
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      touch-action: none;
+      font-family: "Hiragino Maru Gothic ProN", "Rounded Mplus 1c", "BIZ UDPGothic", -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.7) 0%, transparent 45%),
+        radial-gradient(circle at 80% 80%, rgba(255, 214, 165, 0.45) 0%, transparent 50%),
+        linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+    }
+
+    /* 背景のポップなドット模様 */
+    .bg-dots {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.25;
+      background-image: radial-gradient(#f4a261 1.6px, transparent 1.6px);
+      background-size: 26px 26px;
+    }
+
+    /* つねり限界時の赤いビネット演出 */
+    #danger-vignette {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      background: radial-gradient(circle at center, transparent 42%, rgba(255, 36, 66, 0.55) 100%);
+      transition: opacity 0.08s linear;
+      z-index: 2;
+    }
+
+    /* メイン描画キャンバス */
+    #stage {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+      z-index: 1;
+    }
+
+    /* 上部HUD（カウンター＋ミュートボタン） */
+    .hud-top {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .stats-bar {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 2px solid var(--panel-border);
+      border-radius: 999px;
+      padding: 7px 14px;
+      box-shadow: 0 4px 12px rgba(43, 45, 66, 0.08);
+      pointer-events: auto;
+      cursor: pointer;
+    }
+
+    .stat-item {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 5px;
+      font-weight: 800;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .stat-icon {
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .stat-value {
+      font-size: 16px;
+      font-variant-numeric: tabular-nums;
+      color: var(--ink);
+      min-width: 1.5ch;
+      text-align: right;
+    }
+
+    .stat-divider {
+      width: 1.5px;
+      height: 16px;
+      background: rgba(43, 45, 66, 0.16);
+      border-radius: 2px;
+    }
+
+    .sound-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 2px solid var(--panel-border);
+      background: var(--panel-bg);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      box-shadow: 0 4px 12px rgba(43, 45, 66, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
+      pointer-events: auto;
+      transition: transform 0.12s ease, background-color 0.15s ease;
+      padding: 0;
+      color: var(--ink);
+    }
+
+    .sound-btn:active {
+      transform: scale(0.9);
+    }
+
+    .sound-btn.muted {
+      opacity: 0.65;
+      background: rgba(235, 235, 240, 0.85);
+    }
+
+    /* 下部UI（つねり限界ゲージ＆ガイド） */
+    .hud-bottom {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 8px 20px calc(env(safe-area-inset-bottom, 0px) + 18px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .gauge-wrap {
+      width: min(300px, 82vw);
+      background: var(--panel-bg);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 2px solid var(--panel-border);
+      border-radius: 999px;
+      padding: 8px 12px;
+      box-shadow: 0 6px 18px rgba(43, 45, 66, 0.08);
+      opacity: 0.72;
+      transform: translateY(0) scale(0.97);
+      transition: opacity 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+    }
+
+    .gauge-wrap.active {
+      opacity: 1;
+      transform: translateY(-2px) scale(1);
+    }
+
+    .gauge-wrap.danger {
+      border-color: rgba(255, 46, 76, 0.7);
+      animation: gaugeShake 0.11s infinite;
+    }
+
+    @keyframes gaugeShake {
+      0% { transform: translate(-1.5px, -2px) scale(1.01); }
+      50% { transform: translate(1.5px, -1px) scale(1.01); }
+      100% { transform: translate(-1px, -3px) scale(1.01); }
+    }
+
+    .gauge-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 5px;
+      padding: 0 2px;
+    }
+
+    .gauge-label {
+      letter-spacing: 0.03em;
+    }
+
+    .gauge-percent {
+      font-variant-numeric: tabular-nums;
+      color: var(--accent);
+    }
+
+    .gauge-track {
+      width: 100%;
+      height: 12px;
+      background: var(--gauge-bg);
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .gauge-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #52b788 0%, #ffb703 55%, #ff2e4c 100%);
+      transition: width 0.04s linear;
+    }
+
+    .hint-pill {
+      font-size: 12px;
+      font-weight: 700;
+      color: rgba(43, 45, 66, 0.68);
+      background: rgba(255, 255, 255, 0.58);
+      padding: 5px 14px;
+      border-radius: 999px;
+      letter-spacing: 0.02em;
+    }
+
+    /* 破裂後のオーバーレイメッセージ＆復活案内 */
+    #burst-overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+      transform: scale(0.85);
+      transition: opacity 0.2s ease, transform 0.24s cubic-bezier(0.22, 1.4, 0.36, 1);
+      z-index: 8;
+      padding: 24px;
+      text-align: center;
+    }
+
+    #burst-overlay.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .burst-badge {
+      background: #fff;
+      border: 4px solid var(--ink);
+      border-radius: 26px;
+      padding: 18px 28px;
+      box-shadow: 0 10px 0 rgba(43, 45, 66, 0.16);
+      max-width: 88vw;
+    }
+
+    .burst-onomatopoeia {
+      font-size: 42px;
+      font-weight: 900;
+      color: #ff2e4c;
+      line-height: 1.05;
+      letter-spacing: 0.04em;
+      text-shadow: 2px 2px 0 #ffd166;
+      margin-bottom: 6px;
+    }
+
+    .burst-message {
+      font-size: 19px;
+      font-weight: 800;
+      color: var(--ink);
+      margin-bottom: 14px;
+    }
+
+    .respawn-cta {
+      display: inline-block;
+      background: #ff595e;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 800;
+      padding: 9px 18px;
+      border-radius: 999px;
+      box-shadow: 0 4px 0 #c93338;
+      animation: bounceCta 1.1s ease-in-out infinite;
+    }
+
+    @keyframes bounceCta {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-dots" aria-hidden="true"></div>
+  <div id="danger-vignette" aria-hidden="true"></div>
+
+  <canvas id="stage"></canvas>
+
+  <!-- 上部カウンターとミュート切替 -->
+  <header class="hud-top">
+    <div id="stats-bar" class="stats-bar" title="タップでカウントをリセット">
+      <div class="stat-item">
+        <span class="stat-icon" aria-hidden="true">👊</span>
+        <span>殴った</span>
+        <span id="punch-count" class="stat-value">0</span>
+      </div>
+      <div class="stat-divider" aria-hidden="true"></div>
+      <div class="stat-item">
+        <span class="stat-icon" aria-hidden="true">💥</span>
+        <span>割った</span>
+        <span id="burst-count" class="stat-value">0</span>
+      </div>
+    </div>
+
+    <button id="sound-btn" class="sound-btn" type="button" aria-label="効果音のオン・オフを切り替え">
+      🔊
+    </button>
+  </header>
+
+  <!-- 破裂時のコミカルなメッセージ＆ワンタップ復活案内 -->
+  <div id="burst-overlay" aria-live="polite">
+    <div class="burst-badge">
+      <div id="burst-onomatopoeia" class="burst-onomatopoeia">パンッ!!</div>
+      <div id="burst-message" class="burst-message">スッキリした？</div>
+      <div id="respawn-cta" class="respawn-cta">タップで新しい風船を出す</div>
+    </div>
+  </div>
+
+  <!-- 下部つねり限界ゲージと操作ガイド -->
+  <footer class="hud-bottom">
+    <div id="gauge-wrap" class="gauge-wrap">
+      <div class="gauge-header">
+        <span id="gauge-label" class="gauge-label">🤏 つねり限界ゲージ</span>
+        <span id="gauge-percent" class="gauge-percent">0%</span>
+      </div>
+      <div class="gauge-track">
+        <div id="gauge-fill" class="gauge-fill"></div>
+      </div>
+    </div>
+    <div id="hint-pill" class="hint-pill">タップで殴る ／ 長押しでつねる</div>
+  </footer>
+
+  <script>
+    (() => {
+      "use strict";
+
+      /* =========================================================
+       * 1. ユーティリティ関数
+       * ========================================================= */
+      const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+      const lerp = (a, b, t) => a + (b - a) * t;
+      const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+      function hexToRgb(hex) {
+        const clean = hex.replace("#", "");
+        const num = parseInt(clean, 16);
+        return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
+      }
+
+      function mixColor(hexA, hexB, t) {
+        const ct = clamp(t, 0, 1);
+        const a = hexToRgb(hexA);
+        const b = hexToRgb(hexB);
+        const r = Math.round(lerp(a.r, b.r, ct));
+        const g = Math.round(lerp(a.g, b.g, ct));
+        const bl = Math.round(lerp(a.b, b.b, ct));
+        return `#${((1 << 24) + (r << 16) + (g << 8) + bl).toString(16).slice(1)}`;
+      }
+
+      /* =========================================================
+       * 2. Web Audio API 効果音シンセサイザー（外部ファイル不要）
+       * ========================================================= */
+      const SoundEngine = {
+        ctx: null,
+        enabled: true,
+        noiseBuffer: null,
+
+        ensureContext() {
+          if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return null;
+            this.ctx = new AudioCtx();
+          }
+          if (this.ctx.state === "suspended") {
+            this.ctx.resume().catch(() => {});
+          }
+          if (!this.noiseBuffer && this.ctx) {
+            const sampleRate = this.ctx.sampleRate;
+            const buffer = this.ctx.createBuffer(1, sampleRate * 0.5, sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < data.length; i++) {
+              data[i] = Math.random() * 2 - 1;
+            }
+            this.noiseBuffer = buffer;
+          }
+          return this.ctx;
+        },
+
+        unlock() {
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          try {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            gain.gain.value = 0.0001;
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.01);
+          } catch (_) {}
+        },
+
+        // 「殴る」コミカルな音（ドスッ＋ボヨンッ）
+        playPunch(pitchBase = 1.0) {
+          if (!this.enabled) return;
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          const now = ctx.currentTime;
+          const jitter = (0.9 + Math.random() * 0.24) * pitchBase;
+
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(210 * jitter, now);
+          osc.frequency.exponentialRampToValueAtTime(58 * jitter, now + 0.075);
+          osc.frequency.exponentialRampToValueAtTime(145 * jitter, now + 0.16);
+
+          gain.gain.setValueAtTime(0.001, now);
+          gain.gain.linearRampToValueAtTime(0.55, now + 0.008);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.19);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.2);
+
+          if (this.noiseBuffer) {
+            const noise = ctx.createBufferSource();
+            noise.buffer = this.noiseBuffer;
+            const filter = ctx.createBiquadFilter();
+            filter.type = "bandpass";
+            filter.frequency.setValueAtTime(1250 * jitter, now);
+            filter.Q.value = 1.4;
+
+            const nGain = ctx.createGain();
+            nGain.gain.setValueAtTime(0.32, now);
+            nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.065);
+
+            noise.connect(filter);
+            filter.connect(nGain);
+            nGain.connect(ctx.destination);
+            noise.start(now);
+            noise.stop(now + 0.07);
+          }
+        },
+
+        // 「つねる・ゴムがきしむ」パルス音（テンションに応じて高く鋭くなる）
+        playPinchCreak(tension) {
+          if (!this.enabled) return;
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          const now = ctx.currentTime;
+          const baseFreq = 260 + tension * 520 + (Math.random() - 0.5) * 35;
+
+          const osc = ctx.createOscillator();
+          const filter = ctx.createBiquadFilter();
+          const gain = ctx.createGain();
+
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(baseFreq, now);
+          osc.frequency.exponentialRampToValueAtTime(baseFreq * (1.22 + tension * 0.25), now + 0.055);
+          osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.92, now + 0.095);
+
+          filter.type = "bandpass";
+          filter.frequency.setValueAtTime(baseFreq * 2.1, now);
+          filter.Q.value = 4.5;
+
+          const vol = 0.09 + tension * 0.12;
+          gain.gain.setValueAtTime(0.001, now);
+          gain.gain.linearRampToValueAtTime(vol, now + 0.015);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.11);
+        },
+
+        // つねりを途中で離したときの「ビヨヨーン」
+        playRelease(tension) {
+          if (!this.enabled) return;
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          const now = ctx.currentTime;
+
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(160 + tension * 120, now);
+          osc.frequency.exponentialRampToValueAtTime(340 + tension * 180, now + 0.08);
+          osc.frequency.exponentialRampToValueAtTime(140, now + 0.2);
+          osc.frequency.exponentialRampToValueAtTime(240, now + 0.28);
+
+          gain.gain.setValueAtTime(0.001, now);
+          gain.gain.linearRampToValueAtTime(0.24, now + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.32);
+        },
+
+        // 破裂音「パンッ！！」
+        playBurst() {
+          if (!this.enabled) return;
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          const now = ctx.currentTime;
+
+          if (this.noiseBuffer) {
+            const noise = ctx.createBufferSource();
+            noise.buffer = this.noiseBuffer;
+
+            const filter = ctx.createBiquadFilter();
+            filter.type = "highpass";
+            filter.frequency.setValueAtTime(320, now);
+            filter.frequency.exponentialRampToValueAtTime(1800, now + 0.18);
+
+            const gain = ctx.createGain();
+            gain.gain.setValueAtTime(0.95, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(ctx.destination);
+            noise.start(now);
+            noise.stop(now + 0.26);
+          }
+
+          const sub = ctx.createOscillator();
+          const subGain = ctx.createGain();
+          sub.type = "sine";
+          sub.frequency.setValueAtTime(180, now);
+          sub.frequency.exponentialRampToValueAtTime(36, now + 0.16);
+
+          subGain.gain.setValueAtTime(0.75, now);
+          subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+          sub.connect(subGain);
+          subGain.connect(ctx.destination);
+          sub.start(now);
+          sub.stop(now + 0.2);
+        },
+
+        // 新しい風船が復活する「ポンッ！」
+        playSpawn() {
+          if (!this.enabled) return;
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          const now = ctx.currentTime;
+
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(240, now);
+          osc.frequency.exponentialRampToValueAtTime(620, now + 0.11);
+
+          gain.gain.setValueAtTime(0.001, now);
+          gain.gain.linearRampToValueAtTime(0.28, now + 0.015);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.16);
+        }
+      };
+
+      /* =========================================================
+       * 3. 物体カタログ定義（将来のアップデート用拡張ポイント）
+       * ---------------------------------------------------------
+       * スライムやサンドバッグなどを追加する際は、この OBJECT_CATALOG に
+       * 同じ構造のエントリを追加するだけで切り替え対応できます。
+       * ========================================================= */
+      const OBJECT_CATALOG = {
+        balloon: {
+          id: "balloon",
+          name: "風船",
+          colors: [
+            { main: "#ff595e", shade: "#d9383e", highlight: "rgba(255,255,255,0.48)" },
+            { main: "#1982c4", shade: "#115e91", highlight: "rgba(255,255,255,0.45)" },
+            { main: "#ffca3a", shade: "#e09f1f", highlight: "rgba(255,255,255,0.55)" },
+            { main: "#8ac926", shade: "#659b14", highlight: "rgba(255,255,255,0.45)" },
+            { main: "#ff6b9d", shade: "#d94377", highlight: "rgba(255,255,255,0.48)" },
+            { main: "#9b5de5", shade: "#7236bd", highlight: "rgba(255,255,255,0.45)" }
+          ],
+          dangerColor: "#ff1738",
+          dangerShade: "#b8001f",
+          physics: {
+            springK: 230,       // ボヨンと戻るバネの強さ
+            damping: 10.5,      // 揺れの減衰
+            pinchDuration: 2.3, // 限界までつねり続ける秒数
+            coolDownRate: 0.75, // 指を離したときにテンションが下がる速さ
+            punchPitch: 1.0
+          },
+          texts: {
+            punchWords: ["オラッ！", "バシッ！", "ボコッ！", "ポカッ！", "ドガッ！", "ベシッ！", "スカッ！", "ドゴッ！"],
+            pinchCry: ["うぐぐ…", "のびるぅ！", "ヤバい！", "もう限界ッ！"],
+            burstWord: "パンッ!!",
+            burstMessages: [
+              "スッキリした？",
+              "ストレス粉砕ッ！",
+              "見事な破裂っぷり！",
+              "あ〜あ、割れちゃった！",
+              "爽快MAX！",
+              "モヤモヤ吹き飛んだ！"
+            ],
+            respawnLabel: "タップで新しい風船を出す"
+          },
+          render(ctx, state, env) {
+            const { cx, cy, baseR, time } = env;
+            const palette = state.palette;
+            const tension = state.tension;
+
+            const fillColor = mixColor(palette.main, this.dangerColor, Math.pow(tension, 1.3));
+            const shadeColor = mixColor(palette.shade, this.dangerShade, Math.pow(tension, 1.3));
+
+            const shakeAmp = tension > 0.05 ? (2 + tension * tension * 14) : 0;
+            const shakeX = shakeAmp ? (Math.random() - 0.5) * 2 * shakeAmp : 0;
+            const shakeY = shakeAmp ? (Math.random() - 0.5) * 2 * shakeAmp : 0;
+
+            const floatY = Math.sin(time * 2.4) * 6;
+            const posX = cx + state.offsetX + shakeX;
+            const posY = cy - baseR * 0.08 + floatY + state.offsetY + shakeY;
+
+            const swell = 1 + tension * 0.22;
+            const sx = state.scaleX * swell * state.spawnScale;
+            const sy = state.scaleY * swell * state.spawnScale;
+
+            ctx.save();
+            ctx.translate(posX, posY);
+            ctx.rotate(state.rot);
+            ctx.scale(sx, sy);
+
+            // --- 1. ゆらゆら揺れる紐 ---
+            const knotY = baseR * 1.12;
+            const sway1 = Math.sin(time * 2.8) * 14 - state.offsetX * 0.35;
+            const sway2 = Math.cos(time * 2.1) * 18 - state.offsetX * 0.5;
+            ctx.beginPath();
+            ctx.moveTo(0, knotY + 8);
+            ctx.bezierCurveTo(sway1, knotY + baseR * 0.45, sway2, knotY + baseR * 0.85, sway1 * 0.7, knotY + baseR * 1.25);
+            ctx.strokeStyle = "rgba(43, 45, 66, 0.45)";
+            ctx.lineWidth = 3.5;
+            ctx.lineCap = "round";
+            ctx.stroke();
+
+            // --- 2. 下の結び目 ---
+            ctx.beginPath();
+            ctx.moveTo(-10, knotY + 10);
+            ctx.lineTo(10, knotY + 10);
+            ctx.lineTo(3, knotY - 4);
+            ctx.lineTo(-3, knotY - 4);
+            ctx.closePath();
+            ctx.fillStyle = shadeColor;
+            ctx.fill();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = "#2b2d42";
+            ctx.stroke();
+
+            // --- 3. 風船本体（へこみ＆つねり伸びをリアルタイム計算） ---
+            const points = 56;
+            ctx.beginPath();
+            for (let i = 0; i <= points; i++) {
+              const angle = (i / points) * Math.PI * 2;
+              const cosA = Math.cos(angle);
+              const sinA = Math.sin(angle);
+
+              let rx = baseR * 0.94;
+              let ry = baseR * 1.12;
+              if (sinA > 0) {
+                rx *= 1 - 0.14 * sinA * sinA;
+              } else {
+                rx *= 1 + 0.05 * (-sinA);
+              }
+
+              let px = cosA * rx;
+              let py = sinA * ry;
+
+              // 殴られた位置の「へこみ」変形
+              if (state.dentAmount > 0.005) {
+                const diff = Math.atan2(Math.sin(angle - state.dentAngle), Math.cos(angle - state.dentAngle));
+                const influence = Math.exp(-(diff * diff) / 0.32);
+                const push = 1 - state.dentAmount * 0.42 * influence;
+                const oppDiff = Math.atan2(Math.sin(angle - (state.dentAngle + Math.PI)), Math.cos(angle - (state.dentAngle + Math.PI)));
+                const bulge = 1 + state.dentAmount * 0.14 * Math.exp(-(oppDiff * oppDiff) / 0.7);
+                px *= push * bulge;
+                py *= push * bulge;
+              }
+
+              // つねられた方向へ「ぐにゃっと伸びる」変形
+              if (state.pinchPull > 0.005) {
+                const diff = Math.atan2(Math.sin(angle - state.pinchAngle), Math.cos(angle - state.pinchAngle));
+                const tip = Math.exp(-(diff * diff) / 0.14);
+                const neck = Math.exp(-((Math.abs(diff) - 0.52) ** 2) / 0.09);
+                const stretch = 1 + state.pinchPull * (0.58 * tip - 0.11 * neck);
+                px *= stretch;
+                py *= stretch;
+              }
+
+              if (i === 0) ctx.moveTo(px, py);
+              else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+
+            const grad = ctx.createRadialGradient(-baseR * 0.3, -baseR * 0.38, baseR * 0.12, 0, 0, baseR * 1.35);
+            grad.addColorStop(0, mixColor(fillColor, "#ffffff", 0.25));
+            grad.addColorStop(0.55, fillColor);
+            grad.addColorStop(1, shadeColor);
+            ctx.fillStyle = grad;
+            ctx.fill();
+
+            ctx.lineWidth = 4.5;
+            ctx.strokeStyle = "#2b2d42";
+            ctx.stroke();
+
+            // --- 4. ツヤ（ハイライト） ---
+            ctx.save();
+            ctx.translate(-baseR * 0.36, -baseR * 0.42);
+            ctx.rotate(-0.42);
+            ctx.beginPath();
+            ctx.ellipse(0, 0, baseR * 0.14, baseR * 0.27, 0, 0, Math.PI * 2);
+            ctx.fillStyle = palette.highlight;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(-baseR * 0.02, baseR * 0.38, baseR * 0.06, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // --- 5. コミカルな表情 ---
+            this.renderFace(ctx, state, baseR, time);
+
+            // --- 6. 限界間近の汗＆怒りマーク演出 ---
+            if (tension > 0.35) {
+              const alpha = clamp((tension - 0.35) / 0.3, 0, 1);
+              ctx.save();
+              ctx.globalAlpha = alpha;
+              const dropY = -baseR * 0.48 + ((time * 70) % 24);
+              ctx.fillStyle = "#4cc9f0";
+              ctx.strokeStyle = "#2b2d42";
+              ctx.lineWidth = 2.2;
+              ctx.beginPath();
+              ctx.moveTo(baseR * 0.56, dropY - 12);
+              ctx.quadraticCurveTo(baseR * 0.68, dropY + 4, baseR * 0.56, dropY + 10);
+              ctx.quadraticCurveTo(baseR * 0.44, dropY + 4, baseR * 0.56, dropY - 12);
+              ctx.fill();
+              ctx.stroke();
+              ctx.restore();
+            }
+
+            if (tension > 0.65) {
+              ctx.save();
+              ctx.translate(baseR * 0.36, -baseR * 0.54);
+              const pulse = 1 + Math.sin(time * 28) * 0.14;
+              ctx.scale(pulse, pulse);
+              ctx.strokeStyle = "#ffe066";
+              ctx.lineWidth = 4;
+              ctx.lineCap = "round";
+              const r = 10;
+              [
+                [-r, -3, -3, -3, -3, -r],
+                [r, -3, 3, -3, 3, -r],
+                [-r, 3, -3, 3, -3, r],
+                [r, 3, 3, 3, 3, r]
+              ].forEach(([x1, y1, x2, y2, x3, y3]) => {
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.quadraticCurveTo(x2, y2, x3, y3);
+                ctx.stroke();
+              });
+              ctx.restore();
+            }
+
+            ctx.restore();
+          },
+
+          renderFace(ctx, state, baseR, time) {
+            const eyeY = -baseR * 0.06;
+            const eyeX = baseR * 0.27;
+            ctx.strokeStyle = "#2b2d42";
+            ctx.fillStyle = "#2b2d42";
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+
+            if (state.hurtTimer > 0) {
+              // 殴られた直後の「＞ ＜」顔
+              ctx.lineWidth = 5;
+              ctx.beginPath();
+              ctx.moveTo(-eyeX - 11, eyeY - 10);
+              ctx.lineTo(-eyeX + 9, eyeY);
+              ctx.lineTo(-eyeX - 11, eyeY + 10);
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.moveTo(eyeX + 11, eyeY - 10);
+              ctx.lineTo(eyeX - 9, eyeY);
+              ctx.lineTo(eyeX + 11, eyeY + 10);
+              ctx.stroke();
+
+              ctx.beginPath();
+              ctx.ellipse(0, baseR * 0.24, baseR * 0.14, baseR * 0.17, 0, 0, Math.PI * 2);
+              ctx.fillStyle = "#2b2d42";
+              ctx.fill();
+              ctx.beginPath();
+              ctx.ellipse(0, baseR * 0.31, baseR * 0.08, baseR * 0.06, 0, 0, Math.PI * 2);
+              ctx.fillStyle = "#ff8fa3";
+              ctx.fill();
+            } else if (state.isPinching || state.tension > 0.22) {
+              // つねられて必死な顔
+              const t = state.tension;
+              ctx.lineWidth = 4.5;
+              if (t > 0.65) {
+                [-eyeX, eyeX].forEach((x) => {
+                  ctx.beginPath();
+                  ctx.arc(x, eyeY, 13, 0, Math.PI * 2);
+                  ctx.fillStyle = "#ffffff";
+                  ctx.fill();
+                  ctx.stroke();
+                  ctx.beginPath();
+                  ctx.arc(x + Math.sin(time * 30) * 2, eyeY + Math.cos(time * 30) * 2, 4.5, 0, Math.PI * 2);
+                  ctx.fillStyle = "#2b2d42";
+                  ctx.fill();
+                });
+              } else {
+                ctx.beginPath();
+                ctx.moveTo(-eyeX - 10, eyeY - 7);
+                ctx.lineTo(-eyeX + 8, eyeY + 1);
+                ctx.lineTo(-eyeX - 9, eyeY + 8);
+                ctx.moveTo(eyeX + 10, eyeY - 7);
+                ctx.lineTo(eyeX - 8, eyeY + 1);
+                ctx.lineTo(eyeX + 9, eyeY + 8);
+                ctx.stroke();
+              }
+              ctx.beginPath();
+              const mouthY = baseR * 0.24;
+              ctx.moveTo(-22, mouthY);
+              ctx.quadraticCurveTo(-11, mouthY - 8 - t * 6, 0, mouthY + 4);
+              ctx.quadraticCurveTo(11, mouthY + 14 + t * 6, 22, mouthY);
+              ctx.stroke();
+            } else {
+              // 通常時のニコニコ顔
+              ctx.beginPath();
+              ctx.arc(-eyeX, eyeY, 7.5, 0, Math.PI * 2);
+              ctx.arc(eyeX, eyeY, 7.5, 0, Math.PI * 2);
+              ctx.fill();
+
+              ctx.fillStyle = "#ffffff";
+              ctx.beginPath();
+              ctx.arc(-eyeX - 2.5, eyeY - 2.5, 2.6, 0, Math.PI * 2);
+              ctx.arc(eyeX - 2.5, eyeY - 2.5, 2.6, 0, Math.PI * 2);
+              ctx.fill();
+
+              ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
+              ctx.beginPath();
+              ctx.ellipse(-eyeX - 10, eyeY + 18, 10, 6, 0, 0, Math.PI * 2);
+              ctx.ellipse(eyeX + 10, eyeY + 18, 10, 6, 0, 0, Math.PI * 2);
+              ctx.fill();
+
+              ctx.lineWidth = 4.5;
+              ctx.beginPath();
+              ctx.arc(0, baseR * 0.14, baseR * 0.15, 0.18 * Math.PI, 0.82 * Math.PI);
+              ctx.stroke();
+            }
+          }
+        }
+      };
+
+      /* =========================================================
+       * 4. アプリ状態管理・DOM要素
+       * ========================================================= */
+      const canvas = document.getElementById("stage");
+      const ctx = canvas.getContext("2d");
+      const punchCountEl = document.getElementById("punch-count");
+      const burstCountEl = document.getElementById("burst-count");
+      const statsBarEl = document.getElementById("stats-bar");
+      const soundBtnEl = document.getElementById("sound-btn");
+      const gaugeWrapEl = document.getElementById("gauge-wrap");
+      const gaugeLabelEl = document.getElementById("gauge-label");
+      const gaugePercentEl = document.getElementById("gauge-percent");
+      const gaugeFillEl = document.getElementById("gauge-fill");
+      const dangerVignetteEl = document.getElementById("danger-vignette");
+      const burstOverlayEl = document.getElementById("burst-overlay");
+      const burstOnoEl = document.getElementById("burst-onomatopoeia");
+      const burstMsgEl = document.getElementById("burst-message");
+      const respawnCtaEl = document.getElementById("respawn-cta");
+      const hintPillEl = document.getElementById("hint-pill");
+
+      const STORAGE_KEY = "stress_balloon_stats_v1";
+      let currentObjectId = "balloon";
+      const getCurrentObject = () => OBJECT_CATALOG[currentObjectId];
+
+      const stats = { punches: 0, bursts: 0 };
+
+      function loadStats() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            stats.punches = Number(parsed.punches) || 0;
+            stats.bursts = Number(parsed.bursts) || 0;
+          }
+        } catch (_) {}
+        updateStatsUI();
+      }
+
+      function saveStats() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
+        } catch (_) {}
+      }
+
+      function updateStatsUI() {
+        punchCountEl.textContent = stats.punches.toLocaleString("ja-JP");
+        burstCountEl.textContent = stats.bursts.toLocaleString("ja-JP");
+      }
+
+      // 物理＆アニメーション状態
+      const state = {
+        alive: true,
+        respawnReadyAt: 0,
+        paletteIndex: 0,
+        palette: OBJECT_CATALOG.balloon.colors[0],
+
+        offsetX: 0,
+        offsetY: 0,
+        velX: 0,
+        velY: 0,
+        scaleX: 1,
+        scaleY: 1,
+        velScaleX: 0,
+        velScaleY: 0,
+        rot: 0,
+        velRot: 0,
+        spawnScale: 1,
+
+        dentAmount: 0,
+        dentAngle: 0,
+        hurtTimer: 0,
+
+        isPinching: false,
+        pinchPull: 0,
+        pinchAngle: 0,
+        tension: 0,
+        creakTimer: 0,
+
+        screenShake: 0
+      };
+
+      const popups = [];
+      const shockwaves = [];
+      const particles = [];
+
+      // ポインター操作管理（短押し=殴る / 長押し=つねる）
+      const LONG_PRESS_MS = 175;
+      const pointer = {
+        active: false,
+        id: null,
+        downTime: 0,
+        x: 0,
+        y: 0,
+        longPressTimer: null
+      };
+
+      let viewW = window.innerWidth;
+      let viewH = window.innerHeight;
+      let dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+      let centerX = viewW / 2;
+      let centerY = viewH / 2;
+      let baseRadius = Math.min(viewW, viewH) * 0.26;
+
+      function resizeCanvas() {
+        viewW = window.innerWidth;
+        viewH = window.innerHeight;
+        dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+        canvas.width = Math.floor(viewW * dpr);
+        canvas.height = Math.floor(viewH * dpr);
+        canvas.style.width = `${viewW}px`;
+        canvas.style.height = `${viewH}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        centerX = viewW * 0.5;
+        centerY = viewH * 0.48;
+        baseRadius = clamp(Math.min(viewW, viewH) * 0.27, 86, 150);
+      }
+
+      /* =========================================================
+       * 5. アクション処理（殴る・つねる・割れる・復活）
+       * ========================================================= */
+      function spawnPopup(text, x, y, color = "#ff2e4c", size = 34) {
+        popups.push({
+          text,
+          x: clamp(x, 60, viewW - 60),
+          y: clamp(y, 90, viewH - 120),
+          vx: (Math.random() - 0.5) * 90,
+          vy: -120 - Math.random() * 60,
+          rot: (Math.random() - 0.5) * 0.42,
+          color,
+          size,
+          life: 0,
+          maxLife: 0.62
+        });
+      }
+
+      function spawnPunchEffects(x, y, obj) {
+        shockwaves.push({
+          x,
+          y,
+          r: 12,
+          maxR: baseRadius * 0.95,
+          life: 0,
+          maxLife: 0.26,
+          color: "#ff9f1c"
+        });
+
+        const sparkColors = ["#ffbe0b", "#ff595e", "#ffffff", "#fb5607"];
+        for (let i = 0; i < 12; i++) {
+          const ang = (Math.PI * 2 * i) / 12 + (Math.random() - 0.5) * 0.35;
+          const speed = 180 + Math.random() * 260;
+          particles.push({
+            kind: i % 3 === 0 ? "star" : "spark",
+            x,
+            y,
+            vx: Math.cos(ang) * speed,
+            vy: Math.sin(ang) * speed,
+            size: 6 + Math.random() * 7,
+            rot: ang,
+            vRot: (Math.random() - 0.5) * 12,
+            color: pick(sparkColors),
+            gravity: 360,
+            life: 0,
+            maxLife: 0.32 + Math.random() * 0.16
+          });
+        }
+
+        const word = pick(obj.texts.punchWords);
+        const popColor = pick(["#ff2e4c", "#ff6d00", "#d90429", "#7209b7"]);
+        spawnPopup(word, x + (Math.random() - 0.5) * 34, y - 24, popColor, 34 + Math.random() * 8);
+      }
+
+      function triggerPunch(x, y) {
+        if (!state.alive) return;
+        const obj = getCurrentObject();
+
+        const dx = x - centerX;
+        const dy = y - centerY;
+        const angle = Math.atan2(dy, dx);
+
+        state.dentAngle = angle;
+        state.dentAmount = 1.0;
+        state.hurtTimer = 0.28;
+
+        const dirX = Math.cos(angle);
+        const dirY = Math.sin(angle);
+        state.velX += -dirX * 420 + (Math.random() - 0.5) * 140;
+        state.velY += -dirY * 360 - 80;
+        state.velScaleX += (Math.abs(dirX) > Math.abs(dirY) ? -2.8 : 2.6);
+        state.velScaleY += (Math.abs(dirX) > Math.abs(dirY) ? 2.6 : -2.8);
+        state.velRot += (dx >= 0 ? -1 : 1) * (4.2 + Math.random() * 2.5);
+        state.screenShake = Math.max(state.screenShake, 5);
+
+        stats.punches += 1;
+        updateStatsUI();
+        saveStats();
+
+        SoundEngine.playPunch(obj.physics.punchPitch);
+        spawnPunchEffects(x, y, obj);
+      }
+
+      function startPinch(x, y) {
+        if (!state.alive) return;
+        state.isPinching = true;
+        state.pinchAngle = Math.atan2(y - centerY, x - centerX);
+        state.creakTimer = 0;
+      }
+
+      function updatePinchTarget(x, y) {
+        if (!state.isPinching) return;
+        state.pinchAngle = Math.atan2(y - centerY, x - centerX);
+      }
+
+      function stopPinch(playSound = true) {
+        if (!state.isPinching) return;
+        const prevTension = state.tension;
+        state.isPinching = false;
+
+        if (state.alive && prevTension > 0.06) {
+          const dirX = Math.cos(state.pinchAngle);
+          const dirY = Math.sin(state.pinchAngle);
+          state.velX += -dirX * (300 + prevTension * 480);
+          state.velY += -dirY * (300 + prevTension * 480);
+          state.velScaleX += 3.2;
+          state.velScaleY -= 3.2;
+          if (playSound) SoundEngine.playRelease(prevTension);
+        }
+      }
+
+      function triggerBurst() {
+        if (!state.alive) return;
+        const obj = getCurrentObject();
+
+        state.alive = false;
+        state.isPinching = false;
+        state.tension = 1;
+        state.pinchPull = 0;
+        state.screenShake = 18;
+        state.respawnReadyAt = performance.now() + 450;
+
+        stats.bursts += 1;
+        updateStatsUI();
+        saveStats();
+
+        SoundEngine.playBurst();
+
+        shockwaves.push({
+          x: centerX,
+          y: centerY,
+          r: baseRadius * 0.4,
+          maxR: Math.max(viewW, viewH) * 0.65,
+          life: 0,
+          maxLife: 0.38,
+          color: "#ff2e4c"
+        });
+
+        const burstColors = [state.palette.main, "#ff1738", "#ffd166", "#06d6a0", "#4cc9f0", "#ffffff"];
+        for (let i = 0; i < 48; i++) {
+          const ang = Math.random() * Math.PI * 2;
+          const speed = 190 + Math.random() * 520;
+          particles.push({
+            kind: i < 18 ? "shard" : (i % 4 === 0 ? "star" : "confetti"),
+            x: centerX + (Math.random() - 0.5) * baseRadius * 0.5,
+            y: centerY + (Math.random() - 0.5) * baseRadius * 0.5,
+            vx: Math.cos(ang) * speed,
+            vy: Math.sin(ang) * speed - 120,
+            size: 8 + Math.random() * 12,
+            rot: Math.random() * Math.PI * 2,
+            vRot: (Math.random() - 0.5) * 18,
+            color: i < 18 ? state.palette.main : pick(burstColors),
+            gravity: 680,
+            life: 0,
+            maxLife: 0.75 + Math.random() * 0.55
+          });
+        }
+
+        burstOnoEl.textContent = obj.texts.burstWord;
+        burstMsgEl.textContent = pick(obj.texts.burstMessages);
+        respawnCtaEl.textContent = obj.texts.respawnLabel;
+        burstOverlayEl.classList.add("visible");
+        hintPillEl.textContent = "画面をタップで復活！";
+        dangerVignetteEl.style.opacity = "0";
+      }
+
+      function respawnObject() {
+        const obj = getCurrentObject();
+        const nextIdx = (state.paletteIndex + 1 + Math.floor(Math.random() * (obj.colors.length - 1))) % obj.colors.length;
+        state.paletteIndex = nextIdx;
+        state.palette = obj.colors[nextIdx];
+
+        state.alive = true;
+        state.offsetX = 0;
+        state.offsetY = 30;
+        state.velX = 0;
+        state.velY = -160;
+        state.scaleX = 0.75;
+        state.scaleY = 1.28;
+        state.velScaleX = 3.2;
+        state.velScaleY = -2.4;
+        state.rot = 0;
+        state.velRot = 0;
+        state.spawnScale = 0.15;
+        state.dentAmount = 0;
+        state.hurtTimer = 0;
+        state.isPinching = false;
+        state.pinchPull = 0;
+        state.tension = 0;
+
+        burstOverlayEl.classList.remove("visible");
+        hintPillEl.textContent = "タップで殴る ／ 長押しでつねる";
+        SoundEngine.playSpawn();
+      }
+
+      /* =========================================================
+       * 6. 入力イベント処理（iPhone Safari最適化）
+       * ========================================================= */
+      function clearLongPressTimer() {
+        if (pointer.longPressTimer !== null) {
+          clearTimeout(pointer.longPressTimer);
+          pointer.longPressTimer = null;
+        }
+      }
+
+      function handlePointerDown(e) {
+        if (e.isPrimary === false) return;
+        e.preventDefault();
+        SoundEngine.unlock();
+
+        if (!state.alive) {
+          if (performance.now() >= state.respawnReadyAt) {
+            respawnObject();
+          }
+          return;
+        }
+
+        clearLongPressTimer();
+        pointer.active = true;
+        pointer.id = e.pointerId;
+        pointer.downTime = performance.now();
+        pointer.x = e.clientX;
+        pointer.y = e.clientY;
+
+        try {
+          canvas.setPointerCapture(e.pointerId);
+        } catch (_) {}
+
+        state.velScaleX += 0.9;
+        state.velScaleY -= 0.9;
+
+        pointer.longPressTimer = setTimeout(() => {
+          pointer.longPressTimer = null;
+          if (pointer.active && state.alive) {
+            startPinch(pointer.x, pointer.y);
+          }
+        }, LONG_PRESS_MS);
+      }
+
+      function handlePointerMove(e) {
+        if (!pointer.active || e.pointerId !== pointer.id) return;
+        e.preventDefault();
+        pointer.x = e.clientX;
+        pointer.y = e.clientY;
+        if (state.isPinching) {
+          updatePinchTarget(e.clientX, e.clientY);
+        }
+      }
+
+      function handlePointerUpOrCancel(e) {
+        if (!pointer.active || e.pointerId !== pointer.id) return;
+        e.preventDefault();
+        const elapsed = performance.now() - pointer.downTime;
+        const wasPinching = state.isPinching;
+        const upX = e.clientX || pointer.x;
+        const upY = e.clientY || pointer.y;
+
+        clearLongPressTimer();
+        pointer.active = false;
+        pointer.id = null;
+
+        try {
+          canvas.releasePointerCapture(e.pointerId);
+        } catch (_) {}
+
+        if (wasPinching) {
+          stopPinch(e.type !== "pointercancel");
+        } else if (e.type === "pointerup" && elapsed < LONG_PRESS_MS + 40 && state.alive) {
+          triggerPunch(upX, upY);
+        }
+      }
+
+      canvas.addEventListener("pointerdown", handlePointerDown, { passive: false });
+      canvas.addEventListener("pointermove", handlePointerMove, { passive: false });
+      canvas.addEventListener("pointerup", handlePointerUpOrCancel, { passive: false });
+      canvas.addEventListener("pointercancel", handlePointerUpOrCancel, { passive: false });
+
+      // iOS Safariのダブルタップズーム・長押しメニュー・ピンチ拡大を防止
+      canvas.addEventListener("touchstart", (e) => e.preventDefault(), { passive: false });
+      document.addEventListener("contextmenu", (e) => e.preventDefault());
+      document.addEventListener("gesturestart", (e) => e.preventDefault(), { passive: false });
+      document.addEventListener("gesturechange", (e) => e.preventDefault(), { passive: false });
+      window.addEventListener("blur", () => {
+        clearLongPressTimer();
+        pointer.active = false;
+        stopPinch(false);
+      });
+
+      soundBtnEl.addEventListener("click", (e) => {
+        e.stopPropagation();
+        SoundEngine.enabled = !SoundEngine.enabled;
+        soundBtnEl.textContent = SoundEngine.enabled ? "🔊" : "🔇";
+        soundBtnEl.classList.toggle("muted", !SoundEngine.enabled);
+        if (SoundEngine.enabled) {
+          SoundEngine.unlock();
+          SoundEngine.playSpawn();
+        }
+      });
+
+      statsBarEl.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (stats.punches === 0 && stats.bursts === 0) return;
+        if (window.confirm("殴った回数・割った回数を 0 にリセットしますか？")) {
+          stats.punches = 0;
+          stats.bursts = 0;
+          updateStatsUI();
+          saveStats();
+        }
+      });
+
+      /* =========================================================
+       * 7. メイン物理更新＆描画ループ
+       * ========================================================= */
+      function updateGaugeUI(obj) {
+        const pct = Math.round(clamp(state.tension, 0, 1) * 100);
+        gaugeFillEl.style.width = `${pct}%`;
+        gaugePercentEl.textContent = `${pct}%`;
+
+        const isActive = state.isPinching || pct > 0;
+        gaugeWrapEl.classList.toggle("active", isActive);
+        gaugeWrapEl.classList.toggle("danger", state.alive && pct >= 70);
+
+        if (!state.alive) {
+          gaugeLabelEl.textContent = "💥 限界突破！";
+        } else if (state.isPinching) {
+          const cries = obj.texts.pinchCry;
+          const idx = Math.min(cries.length - 1, Math.floor(state.tension * cries.length));
+          gaugeLabelEl.textContent = `🤏 ${cries[idx]}`;
+        } else {
+          gaugeLabelEl.textContent = "🤏 つねり限界ゲージ";
+        }
+
+        if (state.alive && state.tension > 0.35) {
+          const vAlpha = clamp((state.tension - 0.35) / 0.65, 0, 1);
+          dangerVignetteEl.style.opacity = String(vAlpha * 0.9);
+        } else {
+          dangerVignetteEl.style.opacity = "0";
+        }
+      }
+
+      function stepPhysics(dt, obj) {
+        const k = obj.physics.springK;
+        const d = obj.physics.damping;
+
+        if (state.spawnScale < 1) {
+          state.spawnScale = Math.min(1, state.spawnScale + dt * 5.8);
+        }
+
+        const ax = -k * state.offsetX - d * state.velX;
+        const ay = -k * state.offsetY - d * state.velY;
+        state.velX += ax * dt;
+        state.velY += ay * dt;
+        state.offsetX += state.velX * dt;
+        state.offsetY += state.velY * dt;
+
+        const asx = -k * 1.15 * (state.scaleX - 1) - d * 0.9 * state.velScaleX;
+        const asy = -k * 1.15 * (state.scaleY - 1) - d * 0.9 * state.velScaleY;
+        state.velScaleX += asx * dt;
+        state.velScaleY += asy * dt;
+        state.scaleX = clamp(state.scaleX + state.velScaleX * dt, 0.58, 1.5);
+        state.scaleY = clamp(state.scaleY + state.velScaleY * dt, 0.58, 1.5);
+
+        const aRot = -k * 0.85 * state.rot - d * 0.85 * state.velRot;
+        state.velRot += aRot * dt;
+        state.rot = clamp(state.rot + state.velRot * dt, -0.55, 0.55);
+
+        state.dentAmount = Math.max(0, state.dentAmount - dt * 4.4);
+        state.hurtTimer = Math.max(0, state.hurtTimer - dt);
+
+        if (state.alive) {
+          if (state.isPinching) {
+            state.tension = clamp(state.tension + dt / obj.physics.pinchDuration, 0, 1);
+            state.pinchPull = lerp(state.pinchPull, 0.35 + state.tension * 0.75, clamp(dt * 12, 0, 1));
+
+            state.creakTimer -= dt;
+            if (state.creakTimer <= 0) {
+              SoundEngine.playPinchCreak(state.tension);
+              state.creakTimer = lerp(0.24, 0.085, state.tension);
+            }
+
+            if (state.tension >= 1) {
+              triggerBurst();
+            }
+          } else {
+            state.tension = Math.max(0, state.tension - dt * obj.physics.coolDownRate);
+            state.pinchPull = lerp(state.pinchPull, 0, clamp(dt * 14, 0, 1));
+          }
+        }
+
+        state.screenShake = Math.max(0, state.screenShake - dt * 52);
+
+        for (let i = shockwaves.length - 1; i >= 0; i--) {
+          const sw = shockwaves[i];
+          sw.life += dt;
+          if (sw.life >= sw.maxLife) shockwaves.splice(i, 1);
+        }
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.life += dt;
+          if (p.life >= p.maxLife) {
+            particles.splice(i, 1);
+            continue;
+          }
+          p.vy += p.gravity * dt;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.vx *= 0.985;
+          p.rot += p.vRot * dt;
+        }
+
+        for (let i = popups.length - 1; i >= 0; i--) {
+          const pop = popups[i];
+          pop.life += dt;
+          if (pop.life >= pop.maxLife) {
+            popups.splice(i, 1);
+            continue;
+          }
+          pop.x += pop.vx * dt;
+          pop.y += pop.vy * dt;
+          pop.vy *= 0.92;
+        }
+      }
+
+      function drawStar(ctx, r) {
+        ctx.beginPath();
+        for (let i = 0; i < 10; i++) {
+          const rad = i % 2 === 0 ? r : r * 0.45;
+          const ang = (i * Math.PI) / 5 - Math.PI / 2;
+          const x = Math.cos(ang) * rad;
+          const y = Math.sin(ang) * rad;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+      }
+
+      function renderScene(time, obj) {
+        ctx.clearRect(0, 0, viewW, viewH);
+
+        ctx.save();
+        if (state.screenShake > 0.2) {
+          const sx = (Math.random() - 0.5) * 2 * state.screenShake;
+          const sy = (Math.random() - 0.5) * 2 * state.screenShake;
+          ctx.translate(sx, sy);
+        }
+
+        if (state.alive) {
+          const shadowScale = clamp(1 - state.offsetY / 420, 0.65, 1.25) * state.spawnScale;
+          ctx.save();
+          ctx.beginPath();
+          ctx.ellipse(
+            centerX + state.offsetX * 0.45,
+            centerY + baseRadius * 1.65,
+            baseRadius * 0.62 * shadowScale,
+            baseRadius * 0.14 * shadowScale,
+            0, 0, Math.PI * 2
+          );
+          ctx.fillStyle = "rgba(43, 45, 66, 0.1)";
+          ctx.fill();
+          ctx.restore();
+        }
+
+        if (state.alive) {
+          obj.render(ctx, state, {
+            cx: centerX,
+            cy: centerY,
+            baseR: baseRadius,
+            time
+          });
+        }
+
+        for (const sw of shockwaves) {
+          const t = sw.life / sw.maxLife;
+          const r = lerp(sw.r, sw.maxR, 1 - Math.pow(1 - t, 3));
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(sw.x, sw.y, r, 0, Math.PI * 2);
+          ctx.strokeStyle = sw.color;
+          ctx.globalAlpha = 1 - t;
+          ctx.lineWidth = lerp(9, 1.5, t);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        for (const p of particles) {
+          const t = p.life / p.maxLife;
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rot);
+          ctx.globalAlpha = clamp(1 - t * t, 0, 1);
+          ctx.fillStyle = p.color;
+          ctx.strokeStyle = "#2b2d42";
+          ctx.lineWidth = 2;
+
+          if (p.kind === "star") {
+            drawStar(ctx, p.size);
+            ctx.fill();
+            ctx.stroke();
+          } else if (p.kind === "shard") {
+            ctx.beginPath();
+            ctx.moveTo(-p.size, -p.size * 0.35);
+            ctx.quadraticCurveTo(0, -p.size * 0.8, p.size, 0);
+            ctx.lineTo(-p.size * 0.4, p.size * 0.6);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+          } else if (p.kind === "spark") {
+            ctx.beginPath();
+            ctx.moveTo(-p.size * 1.1, 0);
+            ctx.lineTo(0, -p.size * 0.35);
+            ctx.lineTo(p.size * 1.1, 0);
+            ctx.lineTo(0, p.size * 0.35);
+            ctx.closePath();
+            ctx.fill();
+          } else {
+            ctx.fillRect(-p.size * 0.5, -p.size * 0.35, p.size, p.size * 0.7);
+          }
+          ctx.restore();
+        }
+
+        for (const pop of popups) {
+          const t = pop.life / pop.maxLife;
+          const scale = t < 0.18 ? lerp(0.4, 1.18, t / 0.18) : lerp(1.18, 0.96, (t - 0.18) / 0.82);
+          const alpha = t < 0.65 ? 1 : 1 - (t - 0.65) / 0.35;
+
+          ctx.save();
+          ctx.translate(pop.x, pop.y);
+          ctx.rotate(pop.rot);
+          ctx.scale(scale, scale);
+          ctx.globalAlpha = clamp(alpha, 0, 1);
+
+          ctx.font = `900 ${pop.size}px "Hiragino Maru Gothic ProN", "BIZ UDPGothic", sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.lineJoin = "round";
+
+          ctx.lineWidth = 8;
+          ctx.strokeStyle = "#ffffff";
+          ctx.strokeText(pop.text, 0, 0);
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = "#2b2d42";
+          ctx.strokeText(pop.text, 0, 0);
+          ctx.fillStyle = pop.color;
+          ctx.fillText(pop.text, 0, 0);
+          ctx.restore();
+        }
+
+        ctx.restore();
+      }
+
+      /* =========================================================
+       * 8. ホーム画面追加用アイコンをPNG Data URIとして補強
+       * ========================================================= */
+      function generateAppleTouchIcon() {
+        try {
+          const iconCanvas = document.createElement("canvas");
+          iconCanvas.width = 180;
+          iconCanvas.height = 180;
+          const ictx = iconCanvas.getContext("2d");
+          ictx.fillStyle = "#fff3df";
+          ictx.fillRect(0, 0, 180, 180);
+
+          ictx.fillStyle = "#ff595e";
+          ictx.strokeStyle = "#2b2d42";
+          ictx.lineWidth = 6;
+          ictx.beginPath();
+          ictx.ellipse(90, 82, 50, 60, 0, 0, Math.PI * 2);
+          ictx.fill();
+          ictx.stroke();
+
+          ictx.fillStyle = "rgba(255,255,255,0.45)";
+          ictx.beginPath();
+          ictx.ellipse(70, 58, 11, 20, -0.35, 0, Math.PI * 2);
+          ictx.fill();
+
+          ictx.fillStyle = "#2b2d42";
+          ictx.beginPath();
+          ictx.arc(73, 80, 6, 0, Math.PI * 2);
+          ictx.arc(107, 80, 6, 0, Math.PI * 2);
+          ictx.fill();
+
+          ictx.beginPath();
+          ictx.arc(90, 92, 14, 0.15 * Math.PI, 0.85 * Math.PI);
+          ictx.stroke();
+
+          const link = document.getElementById("app-icon");
+          if (link) link.href = iconCanvas.toDataURL("image/png");
+        } catch (_) {}
+      }
+
+      /* =========================================================
+       * 9. 初期化＆アニメーション開始
+       * ========================================================= */
+      let lastTs = performance.now();
+      function loop(ts) {
+        const dt = Math.min((ts - lastTs) / 1000, 0.05);
+        lastTs = ts;
+
+        const obj = getCurrentObject();
+        stepPhysics(dt, obj);
+        renderScene(ts / 1000, obj);
+        updateGaugeUI(obj);
+
+        requestAnimationFrame(loop);
+      }
+
+      window.addEventListener("resize", resizeCanvas);
+      loadStats();
+      resizeCanvas();
+      generateAppleTouchIcon();
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>
