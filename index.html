@@ -4241,7 +4241,23 @@
             coolDownRate: 0.045
           },
           texts: {
-            snacks: ["🍰", "🍩", "🍮", "🍪", "🍫", "🧁", "🍨", "🍡", "🥐", "🍓"],
+            // 指定の6種（クッキー・チョコレート・どら焼き・ケーキ・プリン・飴）を中心に＋α
+            snacks: [
+              { id: "cookie",    name: "クッキー",     words: ["クッキーサクサク♪", "チョコチップうま！"], crumbs: ["#d99b52", "#5c3317", "#f6d5a8"] },
+              { id: "cookie",    name: "クッキー",     words: ["サクッと香ばし♪", "クッキー最高！"],       crumbs: ["#d99b52", "#5c3317", "#f6d5a8"] },
+              { id: "chocolate", name: "チョコレート", words: ["チョコあま〜い♪", "とろける〜！"],       crumbs: ["#5c2c16", "#8d4925", "#ff595e"] },
+              { id: "chocolate", name: "チョコレート", words: ["板チョコまるごと！", "カカオ最高♪"],     crumbs: ["#5c2c16", "#8d4925", "#ffd166"] },
+              { id: "dorayaki",  name: "どら焼き",     words: ["どら焼きうまっ！", "あんこたっぷり♪"],   crumbs: ["#b5651d", "#4a2511", "#f4c078"] },
+              { id: "dorayaki",  name: "どら焼き",     words: ["ふわふわどら焼き♪", "和菓子は別腹！"],   crumbs: ["#b5651d", "#4a2511", "#f4c078"] },
+              { id: "cake",      name: "ケーキ",       words: ["ショートケーキ♪", "生クリーム最高！"],   crumbs: ["#ffffff", "#ff4d6d", "#ffe599"] },
+              { id: "cake",      name: "ケーキ",       words: ["イチゴ甘っ！", "ケーキ別腹や〜♪"],       crumbs: ["#ffffff", "#ff4d6d", "#ffe599"] },
+              { id: "pudding",   name: "プリン",       words: ["プリンぷるぷる♪", "カラメルうまっ！"],   crumbs: ["#ffd166", "#7f3812", "#fff3b0"] },
+              { id: "pudding",   name: "プリン",       words: ["とろとろプリン♪", "飲めるやつや！"],     crumbs: ["#ffd166", "#7f3812", "#fff3b0"] },
+              { id: "candy",     name: "飴ちゃん",     words: ["飴ちゃんペロッ♪", "あまずっぱ〜い！"],   crumbs: ["#ff6b9d", "#ffd166", "#4cc9f0"] },
+              { id: "candy",     name: "飴ちゃん",     words: ["飴ちゃんうまっ♪", "カリッと噛んだ！"],   crumbs: ["#ff6b9d", "#72efdd", "#ffd166"] },
+              { id: "donut",     name: "ドーナツ",     words: ["ドーナツふわっ♪", "チョコたっぷり！"],   crumbs: ["#e09f5a", "#ff758f", "#ffd166"] },
+              { id: "dango",     name: "三色団子",     words: ["お団子もちもち♪", "三色うまっ！"],       crumbs: ["#ff99ac", "#ffffff", "#80ed99"] }
+            ],
             eatWordsLow: ["もぐもぐ♪", "うまっ！", "あま〜い！", "しあわせ♪", "別腹や〜！"],
             eatWordsMid: ["止まらん！", "まだいける！", "ちょっとキツい…", "もう1個だけ！"],
             eatWordsHigh: ["ホックがっ…！", "ギチギチやん！", "息できへん!!", "ヤバいヤバい!!"],
@@ -4259,6 +4275,7 @@
           },
 
           initExtra(state) {
+            const firstSnack = pick(this.texts.snacks);
             state.snack = {
               eatenCount: 0,
               chewTimer: 0,
@@ -4267,7 +4284,10 @@
               bellyJiggle: 0,
               bellyVel: 0,
               strainSoundTimer: 0,
-              flyingSnacks: [],     // 口へ飛び込むお菓子
+              nextSnack: firstSnack,
+              nextSnackColor: pick(["#ff6b9d", "#4cc9f0", "#ffbe0b", "#70e000", "#b565f7"]),
+              nextSnackPop: 1,      // 次のお菓子がポンッと現れるスケールアニメ
+              flyingSnacks: [],     // 口へ飛び込む大きなお菓子
               hookPopped: false,
               hookX: 0,
               hookY: 0,
@@ -4309,38 +4329,45 @@
             state.velScaleX += 1.45;
             state.velScaleY -= 1.35;
 
-            const emoji = pick(this.texts.snacks);
+            // 手元に待機していたお菓子を発射し、すぐ次のお菓子をセット
+            const item = sn.nextSnack || pick(this.texts.snacks);
+            const itemTint = sn.nextSnackColor || "#ff6b9d";
+            sn.nextSnack = pick(this.texts.snacks);
+            sn.nextSnackColor = pick(["#ff6b9d", "#4cc9f0", "#ffbe0b", "#70e000", "#b565f7"]);
+            sn.nextSnackPop = 0.25;
+
             const side = originX >= api.centerX ? 1 : -1;
             sn.flyingSnacks.push({
-              emoji,
+              kind: item.id,
+              tint: itemTint,
               progress: 0,
-              startX: clamp(originX, 40, api.viewW - 40),
-              startY: clamp(originY, 120, api.viewH - 120),
-              arcX: side * (25 + Math.random() * 35),
-              rot: (Math.random() - 0.5) * 1.4
+              startX: clamp(originX, 56, api.viewW - 56),
+              startY: clamp(originY, 130, api.viewH - 130),
+              arcX: side * (32 + Math.random() * 40),
+              rot: (Math.random() - 0.5) * 0.9
             });
 
             api.incrementAction();
             api.pulseSubHUD();
             SoundEngine.playSnackEat(sn.eatenCount);
 
-            // お菓子のかけらパーティクル
+            // 食べたお菓子の色に合わせたかけらパーティクル
             const mouthY = api.centerY - api.baseRadius * 0.24;
-            for (let i = 0; i < 5; i++) {
+            for (let i = 0; i < 7; i++) {
               const ang = Math.random() * Math.PI * 2;
-              const spd = 70 + Math.random() * 110;
+              const spd = 85 + Math.random() * 130;
               api.addParticle({
                 kind: i === 0 ? "star" : "confetti",
-                x: api.centerX + (Math.random() - 0.5) * 26,
+                x: api.centerX + (Math.random() - 0.5) * 32,
                 y: mouthY,
                 vx: Math.cos(ang) * spd,
-                vy: Math.sin(ang) * spd - 45,
-                size: 5 + Math.random() * 4,
+                vy: Math.sin(ang) * spd - 55,
+                size: 6 + Math.random() * 5,
                 rot: Math.random() * Math.PI,
                 vRot: (Math.random() - 0.5) * 12,
-                color: pick(["#ffd166", "#ff8fab", "#ffffff", "#f4a261"]),
-                gravity: 340,
-                maxLife: 0.36
+                color: i === 0 ? "#ffd166" : pick(item.crumbs),
+                gravity: 360,
+                maxLife: 0.42
               });
             }
 
@@ -4367,22 +4394,24 @@
               }
             }
 
-            // 状態に応じたコミカル擬音
-            let pool = this.texts.eatWordsLow;
+            // 状態＆お菓子種類に応じたコミカル擬音
+            let textWord = pick(item.words);
             let col = "#e76f51";
             if (state.tension >= 0.75) {
-              pool = this.texts.eatWordsHigh;
+              textWord = Math.random() < 0.72 ? pick(this.texts.eatWordsHigh) : pick(item.words);
               col = "#ff0054";
             } else if (state.tension >= 0.42) {
-              pool = this.texts.eatWordsMid;
+              textWord = Math.random() < 0.5 ? pick(this.texts.eatWordsMid) : pick(item.words);
               col = "#f77f00";
+            } else if (Math.random() < 0.35) {
+              textWord = pick(this.texts.eatWordsLow);
             }
             api.addPopup(
-              pick(pool),
-              clamp(originX + (Math.random() - 0.5) * 30, 75, api.viewW - 75),
-              Math.min(originY - 26, api.centerY - api.baseRadius * 0.65),
+              textWord,
+              clamp(originX + (Math.random() - 0.5) * 30, 82, api.viewW - 82),
+              Math.min(originY - 32, api.centerY - api.baseRadius * 0.68),
               col,
-              state.tension >= 0.75 ? 32 : 28
+              state.tension >= 0.75 ? 32 : 27
             );
 
             if (state.tension >= 1) {
@@ -4453,10 +4482,15 @@
             sn.bellyVel += bAcc * dt;
             sn.bellyJiggle = clamp(sn.bellyJiggle + sn.bellyVel * dt, -0.35, 0.45);
 
-            // 口へ飛ぶお菓子のアニメーション
+            // 待機中のお菓子のポップイン補間
+            if (sn.nextSnackPop < 1) {
+              sn.nextSnackPop = Math.min(1, sn.nextSnackPop + dt * 5.2);
+            }
+
+            // 口へ飛ぶ大きなお菓子のアニメーション（しっかり見えるテンポ）
             for (let i = sn.flyingSnacks.length - 1; i >= 0; i--) {
               const fs = sn.flyingSnacks[i];
-              fs.progress += dt * 4.8;
+              fs.progress += dt * 3.1;
               if (fs.progress >= 1) {
                 sn.flyingSnacks.splice(i, 1);
               }
@@ -5197,26 +5231,54 @@
 
             ctx.restore();
 
-            /* --- 8. ワールド座標：口へ飛び込むお菓子 --- */
+            /* --- 7.5. ワールド座標：左横に待機する「次の大きなお菓子」プレビュー --- */
+            const snackBaseR = clamp(baseR * 0.36, 32, 48);
+            if (state.alive && sn.nextSnack) {
+              const waitX = Math.max(snackBaseR + 18, posX - unit * 1.48);
+              const waitY = posY - unit * 0.25 + Math.sin(time * 3.2) * 6;
+              const popScale = sn.nextSnackPop < 1 ? lerp(0.3, 1.08, sn.nextSnackPop) : 1;
+
+              ctx.save();
+              ctx.translate(waitX, waitY);
+              ctx.scale(popScale, popScale);
+              // やわらかいお皿／背景オーラ
+              ctx.beginPath();
+              ctx.arc(0, 0, snackBaseR * 1.16, 0, Math.PI * 2);
+              ctx.fillStyle = "rgba(255, 255, 255, 0.78)";
+              ctx.fill();
+              ctx.lineWidth = 3;
+              ctx.strokeStyle = "rgba(43, 45, 66, 0.14)";
+              ctx.stroke();
+
+              this.drawSnackItem(ctx, sn.nextSnack.id, snackBaseR * 0.92, sn.nextSnackColor);
+
+              // 小さなお菓子名ラベル
+              ctx.font = "900 11px 'Hiragino Maru Gothic ProN', 'BIZ UDPGothic', sans-serif";
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.fillStyle = "#2b2d42";
+              ctx.fillText(sn.nextSnack.name, 0, snackBaseR * 1.42);
+              ctx.restore();
+            }
+
+            /* --- 8. ワールド座標：口へ飛び込むド迫力の大きなお菓子 --- */
             const worldMouthX = posX;
             const worldMouthY = posY + (headCy + headR * 0.47) * state.scaleY;
             for (const fs of sn.flyingSnacks) {
               const p = fs.progress;
               const inv = 1 - p;
               const ctrlX = (fs.startX + worldMouthX) * 0.5 + fs.arcX;
-              const ctrlY = Math.min(fs.startY, worldMouthY) - 65;
+              const ctrlY = Math.min(fs.startY, worldMouthY) - 82;
               const fx = inv * inv * fs.startX + 2 * inv * p * ctrlX + p * p * worldMouthX;
               const fy = inv * inv * fs.startY + 2 * inv * p * ctrlY + p * p * worldMouthY;
-              const fScale = lerp(1.15, 0.45, p);
+              // 最初どーんと大きく、口に入る直前までしっかり大きいサイズを維持！
+              const fScale = p < 0.72 ? lerp(1.38, 1.15, p / 0.72) : lerp(1.15, 0.58, (p - 0.72) / 0.28);
 
               ctx.save();
               ctx.translate(fx, fy);
-              ctx.rotate(fs.rot + p * 5);
+              ctx.rotate(fs.rot + p * 3.8);
               ctx.scale(fScale, fScale);
-              ctx.font = "34px sans-serif";
-              ctx.textAlign = "center";
-              ctx.textBaseline = "middle";
-              ctx.fillText(fs.emoji, 0, 0);
+              this.drawSnackItem(ctx, fs.kind, snackBaseR, fs.tint);
               ctx.restore();
             }
 
@@ -5264,6 +5326,422 @@
               ctx.fill();
               ctx.restore();
             }
+          },
+
+          // 大きくポップなお菓子イラストをCanvasで直接描画（端末差なし・どら焼き等もくっきり！）
+          drawSnackItem(ctx, kind, r, tint = "#ff6b9d") {
+            ctx.save();
+            ctx.lineJoin = "round";
+            ctx.lineCap = "round";
+            const outline = "#2b2d42";
+
+            if (kind === "cookie") {
+              // こんがりチョコチップクッキー
+              ctx.beginPath();
+              const bumps = 14;
+              for (let i = 0; i <= bumps; i++) {
+                const a = (i / bumps) * Math.PI * 2;
+                const rad = r * (0.94 + Math.sin(i * 3.1) * 0.06);
+                const px = Math.cos(a) * rad;
+                const py = Math.sin(a) * rad;
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+              }
+              ctx.closePath();
+              const cg = ctx.createRadialGradient(-r * 0.25, -r * 0.25, r * 0.1, 0, 0, r);
+              cg.addColorStop(0, "#f3c685");
+              cg.addColorStop(0.65, "#dca058");
+              cg.addColorStop(1, "#b57433");
+              ctx.fillStyle = cg;
+              ctx.fill();
+              ctx.lineWidth = 3.5;
+              ctx.strokeStyle = outline;
+              ctx.stroke();
+
+              // チョコチップをゴロゴロ配置
+              const chips = [
+                [-0.36, -0.24, 0.16], [0.24, -0.34, 0.14], [0.02, -0.02, 0.17],
+                [-0.42, 0.26, 0.14], [0.36, 0.18, 0.16], [-0.04, 0.44, 0.13]
+              ];
+              ctx.fillStyle = "#4b2613";
+              for (const [cx0, cy0, cr] of chips) {
+                ctx.beginPath();
+                ctx.ellipse(cx0 * r, cy0 * r, cr * r, cr * r * 0.82, cx0 * 2, 0, Math.PI * 2);
+                ctx.fill();
+              }
+
+            } else if (kind === "chocolate") {
+              // 赤い包み紙から顔を出した板チョコレート
+              ctx.rotate(-0.18);
+              const w = r * 1.48;
+              const h = r * 1.72;
+              // 板チョコ本体
+              drawRoundedRect(ctx, -w * 0.5, -h * 0.5, w, h, 7);
+              ctx.fillStyle = "#5c2c16";
+              ctx.fill();
+              ctx.lineWidth = 3.5;
+              ctx.strokeStyle = outline;
+              ctx.stroke();
+
+              // ブロックの溝（3×2の板チョコピース）
+              const cols = 3;
+              const pad = 6;
+              const cellW = (w - pad * 2) / cols;
+              const cellH = (h * 0.56 - pad) / 2;
+              for (let row = 0; row < 2; row++) {
+                for (let col = 0; col < cols; col++) {
+                  const bx = -w * 0.5 + pad + col * cellW + 2;
+                  const by = -h * 0.5 + pad + row * cellH + 2;
+                  ctx.fillStyle = "#7a3b1e";
+                  ctx.fillRect(bx, by, cellW - 4, cellH - 4);
+                  ctx.strokeStyle = "#3c1a0a";
+                  ctx.lineWidth = 1.8;
+                  ctx.strokeRect(bx, by, cellW - 4, cellH - 4);
+                  // ピースのツヤ
+                  ctx.fillStyle = "rgba(255,255,255,0.16)";
+                  ctx.fillRect(bx + 2, by + 2, cellW - 8, 3.5);
+                }
+              }
+
+              // ギザギザ銀紙
+              const wrapY = h * 0.04;
+              ctx.beginPath();
+              ctx.moveTo(-w * 0.54, wrapY - 4);
+              ctx.lineTo(-w * 0.25, wrapY - 12);
+              ctx.lineTo(0, wrapY - 3);
+              ctx.lineTo(w * 0.26, wrapY - 11);
+              ctx.lineTo(w * 0.54, wrapY - 4);
+              ctx.lineTo(w * 0.54, h * 0.52);
+              ctx.lineTo(-w * 0.54, h * 0.52);
+              ctx.closePath();
+              ctx.fillStyle = "#e2e8f0";
+              ctx.fill();
+              ctx.lineWidth = 3;
+              ctx.strokeStyle = outline;
+              ctx.stroke();
+
+              // 赤いパッケージ帯
+              drawRoundedRect(ctx, -w * 0.55, wrapY + 5, w * 1.1, h * 0.48, 5);
+              ctx.fillStyle = "#e63946";
+              ctx.fill();
+              ctx.lineWidth = 3.2;
+              ctx.strokeStyle = outline;
+              ctx.stroke();
+
+              // 金色ライン
+              ctx.fillStyle = "#ffd166";
+              ctx.fillRect(-w * 0.46, wrapY + 13, w * 0.92, 5);
+
+            } else if (kind === "dorayaki") {
+              // ふっくらこんがり「どら焼き」（たっぷりあんこサンド！）
+              // 下の皮
+              ctx.beginPath();
+              ctx.ellipse(0, r * 0.26, r * 0.96, r * 0.44, 0, 0, Math.PI * 2);
+              ctx.fillStyle = "#f4cb89";
+              ctx.fill();
+              ctx.lineWidth = 3.4;
+              ctx.strokeStyle = outline;
+              ctx.stroke();
+
+              // 下の皮の焼き色
+              ctx.beginPath();
+              ctx.ellipse(0, r * 0.34, r * 0.84, r * 0.3, 0, 0, Math.PI);
+              ctx.fillStyle = "#b5651d";
+              ctx.fill();
+
+              // はみ出すたっぷりあんこ層
+              ctx.beginPath();
+              ctx.moveTo(-r * 0.92, r * 0.08);
+              ctx.bezierCurveTo(-r * 0.55, r * 0.42, r * 0.55, r * 0.42, r * 0.92, r * 0.08);
+              ctx.bezierCurveTo(r * 0.72, -r * 0.14, -r * 0.72, -r * 0.14, -r * 0.92, r * 0.08);
+              ctx.closePath();
+              ctx.fillStyle = "#4a2016";
+              ctx.fill();
+              ctx.lineWidth = 3.2;
+              ctx.strokeStyle = outline;
+              ctx.stroke();
+
+              // あんこの小豆粒ツヤ
+              ctx.fillStyle = "#7a3b2e";
+              [-0.45, -0.15, 0.18, 0.48].forEach((ax) => {
+                ctx.beginPath();
+                ctx.ellipse(ax * r, r * 0.18, r * 0.11, r * 0.06, 0.1, 0, Math.PI * 2);
+                ctx.fill();
+              });
+
+              // 上のふっくら皮
+              ctx.beginPath();
+              ctx.ellipse(0, -r * 0.12, r * 0.96, r * 0.46, 0, 0, Math.PI * 2);
+              ctx.fillStyle = "#f6d296";
+              ctx.fill();
+              ctx.lineWidth = 3.4;
+              ctx.strokeStyle = outline;
+              ctx.stroke();
+
+              // 上面のこんがり焼き色ドーム
+              ctx.beginPath();
+              ctx.ellipse(0, -r * 0.18, r * 0.84, r * 0.35, 0, 0, Math.PI * 2);
+              const dg = ctx.createRadialGradient(-r * 0.2, -r * 0.28, 3, 0, -r * 0.18, r * 0.85);
+              dg.addColorStop(0, "#d4812a");
+              dg.addColorStop(1, "#9c4e12");
+              ctx.fillStyle = dg;
+              ctx.fill();
+
+              // ハイライト
+              ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+              ctx.beginPath();
+              ctx.ellipse(-r * 0.28, -r * 0.28, r * 0.22, r * 0.09, -0.2, 0, Math.PI * 2);
+              ctx.fill();
+
+            } else if (kind === "cake") {
+              // イチゴのショートケーキ
+              const w = r * 1.7;
+              const h = r * 1.1;
+              const x0 = -w * 0.5;
+              const y0 = -h * 0.15;
+
+              // ケーキ側面のスポンジ
+              ctx.beginPath();
+              ctx.moveTo(x0, y0);
+              ctx.lineTo(x0 + w, y0);
+              ctx.lineTo(x0 + w, y0 + h * 0.82);
+              ctx.lineTo(x0, y0 + h * 0.82);
+              ctx.closePath();
+              ctx.fillStyle = "#ffe599";
+              ctx.fill();
+
+              // 真ん中の生クリーム＆イチゴサンド層
+              ctx.fillStyle = "#ffffff";
+              ctx.fillRect(x0 + 2, y0 + h * 0.32, w - 4, h * 0.22);
+              ctx.fillStyle = "#ff4d6d";
+              ctx.fillRect(x0 + w * 0.16, y0 + h * 0.36, w * 0.24, h * 0.14);
+              ctx.fillRect(x0 + w * 0.58, y0 + h * 0.36, w * 0.24, h * 0.14);
+
+              // 上面の白い生クリーム（斜めカット）
+              ctx.beginPath();
+              ctx.moveTo(x0 - 2, y0 + 2);
+              ctx.lineTo(x0 + w * 0.24, y0 - h * 0.42);
+              ctx.lineTo(x0 + w + 2, y0 + 2);
+              ctx.closePath();
+              ctx.fillStyle = "#ffffff";
+              ctx.fill();
+
+              // 外枠
+              ctx.lineWidth = 3.4;
+              ctx.strokeStyle = outline;
+              ctx.strokeRect(x0, y0, w, h * 0.82);
+              ctx.beginPath();
+              ctx.moveTo(x0, y0);
+              ctx.lineTo(x0 + w * 0.24, y0 - h * 0.42);
+              ctx.lineTo(x0 + w, y0);
+              ctx.stroke();
+
+              // ホイップの絞りクリーム
+              ctx.fillStyle = "#ffffff";
+              ctx.beginPath();
+              ctx.arc(x0 + w * 0.36, y0 - h * 0.24, r * 0.22, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.lineWidth = 2.6;
+              ctx.stroke();
+
+              // てっぺんの真っ赤なイチゴ！
+              ctx.beginPath();
+              ctx.moveTo(x0 + w * 0.36, y0 - h * 0.86);
+              ctx.bezierCurveTo(x0 + w * 0.62, y0 - h * 0.62, x0 + w * 0.56, y0 - h * 0.18, x0 + w * 0.36, y0 - h * 0.18);
+              ctx.bezierCurveTo(x0 + w * 0.16, y0 - h * 0.18, x0 + w * 0.1, y0 - h * 0.62, x0 + w * 0.36, y0 - h * 0.86);
+              ctx.closePath();
+              ctx.fillStyle = "#ff2e4c";
+              ctx.fill();
+              ctx.lineWidth = 3;
+              ctx.stroke();
+
+              // イチゴの緑のヘタ
+              ctx.fillStyle = "#52b788";
+              ctx.beginPath();
+              ctx.ellipse(x0 + w * 0.36, y0 - h * 0.22, r * 0.16, r * 0.06, 0, 0, Math.PI * 2);
+              ctx.fill();
+
+            } else if (kind === "pudding") {
+              // ぷるんとしたカスタードプリン
+              // 白い小皿
+              ctx.beginPath();
+              ctx.ellipse(0, r * 0.64, r * 1.02, r * 0.24, 0, 0, Math.PI * 2);
+              ctx.fillStyle = "#ffffff";
+              ctx.fill();
+              ctx.lineWidth = 3.2;
+              ctx.strokeStyle = outline;
+              ctx.stroke();
+
+              // プリン本体の台形シルエット
+              ctx.beginPath();
+              ctx.moveTo(-r * 0.54, -r * 0.68);
+              ctx.quadraticCurveTo(0, -r * 0.82, r * 0.54, -r * 0.68);
+              ctx.lineTo(r * 0.84, r * 0.52);
+              ctx.quadraticCurveTo(0, r * 0.72, -r * 0.84, r * 0.52);
+              ctx.closePath();
+              const pg = ctx.createLinearGradient(0, -r * 0.7, 0, r * 0.6);
+              pg.addColorStop(0, "#ffe484");
+              pg.addColorStop(1, "#f7b538");
+              ctx.fillStyle = pg;
+              ctx.fill();
+
+              // てっぺんのたっぷりカラメルソース（とろーり垂れる）
+              ctx.save();
+              ctx.clip();
+              ctx.beginPath();
+              ctx.moveTo(-r, -r);
+              ctx.lineTo(r, -r);
+              ctx.lineTo(r, -r * 0.22);
+              ctx.bezierCurveTo(r * 0.6, r * 0.05, r * 0.38, -r * 0.32, r * 0.16, -r * 0.12);
+              ctx.bezierCurveTo(-r * 0.05, r * 0.14, -r * 0.26, -r * 0.24, -r * 0.45, -r * 0.08);
+              ctx.bezierCurveTo(-r * 0.68, r * 0.06, -r * 0.85, -r * 0.26, -r, -r * 0.18);
+              ctx.closePath();
+              ctx.fillStyle = "#7a3010";
+              ctx.fill();
+              ctx.restore();
+
+              // プリン外枠
+              ctx.beginPath();
+              ctx.moveTo(-r * 0.54, -r * 0.68);
+              ctx.quadraticCurveTo(0, -r * 0.82, r * 0.54, -r * 0.68);
+              ctx.lineTo(r * 0.84, r * 0.52);
+              ctx.quadraticCurveTo(0, r * 0.72, -r * 0.84, r * 0.52);
+              ctx.closePath();
+              ctx.lineWidth = 3.5;
+              ctx.strokeStyle = outline;
+              ctx.stroke();
+
+              // ぷるぷるツヤ
+              ctx.fillStyle = "rgba(255, 255, 255, 0.55)";
+              ctx.beginPath();
+              ctx.ellipse(-r * 0.28, -r * 0.45, r * 0.16, r * 0.08, -0.35, 0, Math.PI * 2);
+              ctx.fill();
+
+            } else if (kind === "candy") {
+              // カラフルな包み紙の飴ちゃん
+              ctx.rotate(-0.28);
+              const shade = mixColor(tint, "#000000", 0.22);
+              const light = mixColor(tint, "#ffffff", 0.55);
+
+              // 左右のねじり包み紙
+              [-1, 1].forEach((side) => {
+                ctx.beginPath();
+                ctx.moveTo(side * r * 0.45, 0);
+                ctx.lineTo(side * r * 1.12, -r * 0.48);
+                ctx.lineTo(side * r * 1.0, 0);
+                ctx.lineTo(side * r * 1.12, r * 0.48);
+                ctx.closePath();
+                ctx.fillStyle = light;
+                ctx.fill();
+                ctx.lineWidth = 3.2;
+                ctx.strokeStyle = outline;
+                ctx.stroke();
+              });
+
+              // 中央の丸い飴玉
+              ctx.beginPath();
+              ctx.arc(0, 0, r * 0.64, 0, Math.PI * 2);
+              const ag = ctx.createRadialGradient(-r * 0.2, -r * 0.2, 3, 0, 0, r * 0.66);
+              ag.addColorStop(0, light);
+              ag.addColorStop(0.55, tint);
+              ag.addColorStop(1, shade);
+              ctx.fillStyle = ag;
+              ctx.fill();
+              ctx.lineWidth = 3.5;
+              ctx.strokeStyle = outline;
+              ctx.stroke();
+
+              // ぐるぐるストライプ模様＆ツヤ
+              ctx.strokeStyle = "rgba(255, 255, 255, 0.72)";
+              ctx.lineWidth = 4;
+              ctx.beginPath();
+              ctx.arc(0, 0, r * 0.34, -0.4, 2.2);
+              ctx.stroke();
+              ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+              ctx.beginPath();
+              ctx.ellipse(-r * 0.22, -r * 0.24, r * 0.14, r * 0.08, -0.5, 0, Math.PI * 2);
+              ctx.fill();
+
+            } else if (kind === "donut") {
+              // ストロベリーチョコ＆カラースプレーのドーナツ
+              ctx.beginPath();
+              ctx.arc(0, 0, r * 0.92, 0, Math.PI * 2);
+              ctx.fillStyle = "#e8a85c";
+              ctx.fill();
+              ctx.lineWidth = 3.5;
+              ctx.strokeStyle = outline;
+              ctx.stroke();
+
+              // ピンクグレーズ
+              ctx.beginPath();
+              ctx.arc(0, 0, r * 0.82, 0, Math.PI * 2);
+              ctx.fillStyle = "#ff758f";
+              ctx.fill();
+
+              // 真ん中の穴
+              ctx.beginPath();
+              ctx.arc(0, 0, r * 0.32, 0, Math.PI * 2);
+              ctx.fillStyle = "#fff7ed";
+              ctx.fill();
+              ctx.lineWidth = 3.2;
+              ctx.strokeStyle = outline;
+              ctx.stroke();
+
+              // カラースプレー
+              const sprinkles = [
+                [-0.45, -0.35, 0.5, "#ffd166"], [0.35, -0.45, -0.4, "#ffffff"],
+                [0.52, 0.15, 0.8, "#4cc9f0"], [-0.25, 0.52, -0.6, "#80ed99"],
+                [-0.55, 0.12, 0.2, "#ffffff"], [0.15, 0.52, 0.3, "#ffd166"]
+              ];
+              ctx.lineWidth = 4;
+              for (const [sx0, sy0, ang, col] of sprinkles) {
+                ctx.save();
+                ctx.translate(sx0 * r, sy0 * r);
+                ctx.rotate(ang);
+                ctx.strokeStyle = col;
+                ctx.beginPath();
+                ctx.moveTo(-4, 0);
+                ctx.lineTo(4, 0);
+                ctx.stroke();
+                ctx.restore();
+              }
+
+            } else {
+              // 三色団子（ピンク・白・緑）
+              ctx.rotate(-0.45);
+              // 竹串
+              ctx.strokeStyle = "#d4a373";
+              ctx.lineWidth = 5;
+              ctx.beginPath();
+              ctx.moveTo(0, -r * 0.88);
+              ctx.lineTo(0, r * 1.18);
+              ctx.stroke();
+              ctx.strokeStyle = outline;
+              ctx.lineWidth = 1.6;
+              ctx.stroke();
+
+              const dangoColors = [
+                { y: -r * 0.56, col: "#ff99ac" },
+                { y: 0,         col: "#ffffff" },
+                { y: r * 0.56,  col: "#80ed99" }
+              ];
+              for (const d of dangoColors) {
+                ctx.beginPath();
+                ctx.arc(0, d.y, r * 0.36, 0, Math.PI * 2);
+                ctx.fillStyle = d.col;
+                ctx.fill();
+                ctx.lineWidth = 3.2;
+                ctx.strokeStyle = outline;
+                ctx.stroke();
+
+                ctx.fillStyle = "rgba(255,255,255,0.55)";
+                ctx.beginPath();
+                ctx.arc(-r * 0.11, d.y - r * 0.11, r * 0.09, 0, Math.PI * 2);
+                ctx.fill();
+              }
+            }
+
+            ctx.restore();
           }
         }
       };
