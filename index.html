@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="ストレス解消" />
   <meta name="theme-color" content="#fff6e9" />
-  <title>ボコッと＆ブシャーッ＆なでなで！ストレス解消アプリ</title>
+  <title>ボコッと＆ホック限界！ストレス解消アプリ</title>
   <link id="app-icon" rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23fff3df'/%3E%3Cellipse cx='90' cy='80' rx='52' ry='62' fill='%23ff5a5f'/%3E%3Cellipse cx='72' cy='58' rx='12' ry='22' transform='rotate(-20 72 58)' fill='rgba(255,255,255,0.45)'/%3E%3Cpolygon points='82,140 98,140 90,150' fill='%23ff5a5f'/%3E%3Ccircle cx='74' cy='78' r='6' fill='%232b2d42'/%3E%3Ccircle cx='106' cy='78' r='6' fill='%232b2d42'/%3E%3Cpath d='M78 98 Q90 108 102 98' stroke='%232b2d42' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" />
   <style>
     :root {
@@ -64,6 +64,11 @@
       --bg-bottom: #c2daf6;
     }
 
+    body.mode-snack {
+      --bg-top: #fff7ed;
+      --bg-bottom: #ffe1c6;
+    }
+
     /* 背景のポップなドット模様 */
     .bg-dots {
       position: fixed;
@@ -87,6 +92,11 @@
     body.mode-pet .bg-dots {
       background-image: radial-gradient(#7aa7e0 1.7px, transparent 1.7px);
       opacity: 0.26;
+    }
+
+    body.mode-snack .bg-dots {
+      background-image: radial-gradient(#f48c64 1.7px, transparent 1.7px);
+      opacity: 0.24;
     }
 
     body.mode-pet #danger-vignette {
@@ -236,16 +246,23 @@
     .char-switcher {
       display: inline-flex;
       align-items: center;
-      gap: 3px;
+      gap: 2px;
       background: var(--panel-bg);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       border: 2px solid var(--panel-border);
       border-radius: 999px;
-      padding: 4px;
+      padding: 3px;
       box-shadow: 0 4px 12px rgba(43, 45, 66, 0.08);
       pointer-events: auto;
       max-width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    .char-switcher::-webkit-scrollbar {
+      display: none;
     }
 
     .char-tab {
@@ -253,23 +270,28 @@
       background: transparent;
       color: rgba(43, 45, 66, 0.68);
       font-family: inherit;
-      font-size: 11.5px;
+      font-size: 11px;
       font-weight: 800;
-      padding: 6px 9px;
+      padding: 6px 7.5px;
       border-radius: 999px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 3px;
+      gap: 2px;
       transition: background-color 0.18s ease, color 0.18s ease, transform 0.12s ease;
       white-space: nowrap;
+      flex-shrink: 0;
     }
 
-    @media (min-width: 420px) {
+    @media (min-width: 410px) {
+      .char-switcher {
+        gap: 3px;
+        padding: 4px;
+      }
       .char-tab {
-        font-size: 12.5px;
-        padding: 6px 12px;
-        gap: 4px;
+        font-size: 12px;
+        padding: 6px 10.5px;
+        gap: 3px;
       }
     }
 
@@ -1360,6 +1382,156 @@
             osc.start(t);
             osc.stop(t + 0.58);
           });
+        },
+
+        // 【お菓子＆ホック】もぐもぐ・サクッと食べる音
+        playSnackEat(count) {
+          if (!this.enabled) return;
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          const now = ctx.currentTime;
+          const boost = 1 + Math.min(count, 15) * 0.02;
+
+          // サクッ（軽いクランチノイズ）
+          if (this.noiseBuffer) {
+            const noise = ctx.createBufferSource();
+            noise.buffer = this.noiseBuffer;
+            const filter = ctx.createBiquadFilter();
+            filter.type = "bandpass";
+            filter.frequency.setValueAtTime(1900 * boost, now);
+            filter.Q.value = 1.6;
+
+            const nGain = ctx.createGain();
+            nGain.gain.setValueAtTime(0.001, now);
+            nGain.gain.linearRampToValueAtTime(0.24, now + 0.01);
+            nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.075);
+
+            noise.connect(filter);
+            filter.connect(nGain);
+            nGain.connect(ctx.destination);
+            noise.start(now);
+            noise.stop(now + 0.085);
+          }
+
+          // モグッ・パクッ（ポップな咀嚼トーン）
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(280 * boost, now + 0.02);
+          osc.frequency.exponentialRampToValueAtTime(460 * boost, now + 0.075);
+          osc.frequency.exponentialRampToValueAtTime(230 * boost, now + 0.13);
+
+          gain.gain.setValueAtTime(0.001, now + 0.02);
+          gain.gain.linearRampToValueAtTime(0.22, now + 0.035);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + 0.02);
+          osc.stop(now + 0.15);
+        },
+
+        // 【お菓子＆ホック】ホックが限界で軋む「ギチッ！ピキッ！」音
+        playHookStrain(tension) {
+          if (!this.enabled) return;
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          const now = ctx.currentTime;
+          const freq = 520 + tension * 880 + (Math.random() - 0.5) * 90;
+
+          const osc = ctx.createOscillator();
+          const filter = ctx.createBiquadFilter();
+          const gain = ctx.createGain();
+
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(freq, now);
+          osc.frequency.exponentialRampToValueAtTime(freq * 1.28, now + 0.045);
+          osc.frequency.exponentialRampToValueAtTime(freq * 0.85, now + 0.08);
+
+          filter.type = "bandpass";
+          filter.frequency.setValueAtTime(freq * 1.9, now);
+          filter.Q.value = 6.5;
+
+          const vol = 0.07 + tension * 0.13;
+          gain.gain.setValueAtTime(0.001, now);
+          gain.gain.linearRampToValueAtTime(vol, now + 0.01);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.095);
+        },
+
+        // 【お菓子＆ホック】ホックが弾け飛ぶ「パチンッ!! ビュゥン!! ボヨンッ!!」
+        playHookPop() {
+          if (!this.enabled) return;
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          const now = ctx.currentTime;
+
+          // 1. 金属ホックが弾ける鋭い「パチンッ!!」
+          const ping = ctx.createOscillator();
+          const pingGain = ctx.createGain();
+          ping.type = "triangle";
+          ping.frequency.setValueAtTime(1450, now);
+          ping.frequency.exponentialRampToValueAtTime(2600, now + 0.025);
+          ping.frequency.exponentialRampToValueAtTime(420, now + 0.11);
+          pingGain.gain.setValueAtTime(0.65, now);
+          pingGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+          ping.connect(pingGain);
+          pingGain.connect(ctx.destination);
+          ping.start(now);
+          ping.stop(now + 0.13);
+
+          // 2. スナップ破裂ノイズ
+          if (this.noiseBuffer) {
+            const snap = ctx.createBufferSource();
+            snap.buffer = this.noiseBuffer;
+            const filter = ctx.createBiquadFilter();
+            filter.type = "highpass";
+            filter.frequency.setValueAtTime(1400, now);
+            const sGain = ctx.createGain();
+            sGain.gain.setValueAtTime(0.75, now);
+            sGain.gain.exponentialRampToValueAtTime(0.001, now + 0.085);
+            snap.connect(filter);
+            filter.connect(sGain);
+            sGain.connect(ctx.destination);
+            snap.start(now);
+            snap.stop(now + 0.095);
+          }
+
+          // 3. ホックが弾丸のように飛ぶ「ビュゥゥンッ！」
+          const zip = ctx.createOscillator();
+          const zipGain = ctx.createGain();
+          zip.type = "sine";
+          zip.frequency.setValueAtTime(1800, now + 0.03);
+          zip.frequency.exponentialRampToValueAtTime(340, now + 0.34);
+          zipGain.gain.setValueAtTime(0.001, now + 0.03);
+          zipGain.gain.linearRampToValueAtTime(0.28, now + 0.06);
+          zipGain.gain.exponentialRampToValueAtTime(0.001, now + 0.36);
+          zip.connect(zipGain);
+          zipGain.connect(ctx.destination);
+          zip.start(now + 0.03);
+          zip.stop(now + 0.38);
+
+          // 4. 解放されたお腹の「ボヨヨ〜ン！」
+          const boing = ctx.createOscillator();
+          const bGain = ctx.createGain();
+          boing.type = "sine";
+          boing.frequency.setValueAtTime(125, now + 0.06);
+          boing.frequency.exponentialRampToValueAtTime(240, now + 0.14);
+          boing.frequency.exponentialRampToValueAtTime(110, now + 0.24);
+          boing.frequency.exponentialRampToValueAtTime(195, now + 0.34);
+          boing.frequency.exponentialRampToValueAtTime(130, now + 0.44);
+          bGain.gain.setValueAtTime(0.001, now + 0.06);
+          bGain.gain.linearRampToValueAtTime(0.42, now + 0.08);
+          bGain.gain.exponentialRampToValueAtTime(0.001, now + 0.46);
+          boing.connect(bGain);
+          bGain.connect(ctx.destination);
+          boing.start(now + 0.06);
+          boing.stop(now + 0.48);
         },
 
         // 復活音「ポンッ！」
@@ -3337,7 +3509,7 @@
          * ------------------------------------------------------- */
         pet: {
           id: "pet",
-          name: "なでなで",
+          name: "なで",
           tabIcon: "👋",
           bodyClass: "mode-pet",
           overlayPosition: "bottom",
@@ -4032,10 +4204,1071 @@
 
             ctx.restore();
           }
+        },
+
+        /* -------------------------------------------------------
+         * キャラ5：おかっぱ女子のお菓子ドカ食い＆ホック限界チャレンジ！
+         * ------------------------------------------------------- */
+        snack: {
+          id: "snack",
+          name: "お菓子",
+          tabIcon: "🍰",
+          bodyClass: "mode-snack",
+          overlayPosition: "bottom",
+          overlayStyle: "speech",
+          hud: {
+            actionIcon: "🍰",
+            actionLabel: "食べた",
+            burstIcon: "💥",
+            burstLabel: "ホック",
+            gaugeIdle: "🪡 ホック限界ゲージ",
+            gaugeBurst: "💥 ホック弾け飛んだ!!",
+            hintAlive: "タップでお菓子1口 ／ 長押しでドカ食い！",
+            hintDead: "画面をタップで新しい服に着替える"
+          },
+          // 復活ごとに変わるおかっぱ女子のコーデ
+          colors: [
+            { name: "スクールネイビー", top: "#fff8f0", collar: "#ff758f", skirt: "#2b4570", skirtShade: "#1c2f4f", pin: "#ffd166" },
+            { name: "ストロベリー", top: "#ffffff", collar: "#ff595e", skirt: "#c9184a", skirtShade: "#8f1135", pin: "#ffbe0b" },
+            { name: "抹茶カフェ", top: "#fffdf5", collar: "#52b788", skirt: "#386641", skirtShade: "#25452b", pin: "#ff8fab" },
+            { name: "デニムポップ", top: "#fff0f6", collar: "#ff8fab", skirt: "#3a6ea5", skirtShade: "#244b75", pin: "#ffd166" },
+            { name: "キャメル秋色", top: "#ffffff", collar: "#e07a5f", skirt: "#9c6644", skirtShade: "#6f452c", pin: "#72efdd" }
+          ],
+          physics: {
+            springK: 230,
+            damping: 10.6,
+            holdDuration: 2.6,
+            coolDownRate: 0.045
+          },
+          texts: {
+            snacks: ["🍰", "🍩", "🍮", "🍪", "🍫", "🧁", "🍨", "🍡", "🥐", "🍓"],
+            eatWordsLow: ["もぐもぐ♪", "うまっ！", "あま〜い！", "しあわせ♪", "別腹や〜！"],
+            eatWordsMid: ["止まらん！", "まだいける！", "ちょっとキツい…", "もう1個だけ！"],
+            eatWordsHigh: ["ホックがっ…！", "ギチギチやん！", "息できへん!!", "ヤバいヤバい!!"],
+            holdCry: ["🍰 モグモグ…", "🍩 ちょっとキツい…", "🪡 ホックが悲鳴!!", "🚨 外れる0.1秒前!!"],
+            popOno: "パチンッ!!",
+            popMessages: [
+              "「うわっ!! ホック飛んでったやん!! 誰か拾て〜!!」",
+              "「パチンッて言うたな今…！聞いてへんよな！？」",
+              "「ちゃうねん！このスカート縮んだんやって！！」",
+              "「あーあ、やってもーた…でもお腹めっちゃ楽やわ〜♪」",
+              "「甘いもんは別腹って言うたやんか〜!!」",
+              "「もう知らん！明日から本気ダイエットやもん！」"
+            ],
+            respawnLabel: "タップで新しい服に着替える"
+          },
+
+          initExtra(state) {
+            state.snack = {
+              eatenCount: 0,
+              chewTimer: 0,
+              eatCooldown: 0,
+              digestDelay: 0,       // 食後しばらくはお腹が減らない猶予
+              bellyJiggle: 0,
+              bellyVel: 0,
+              strainSoundTimer: 0,
+              flyingSnacks: [],     // 口へ飛び込むお菓子
+              hookPopped: false,
+              hookX: 0,
+              hookY: 0,
+              hookVx: 0,
+              hookVy: 0,
+              hookRot: 0,
+              hookVRot: 0,
+              overlayShown: false,
+              overlayDelay: 0,
+              pendingOno: "",
+              pendingMsg: ""
+            };
+          },
+
+          getSubHudInfo(state) {
+            if (!state.snack) return null;
+            const sn = state.snack;
+            const pct = Math.round(clamp(state.tension, 0, 1) * 100);
+            if (!state.alive) {
+              return { text: `🍰 ${sn.eatenCount}個完食`, tag: "ホック撃沈!!", level: "high" };
+            }
+            if (pct >= 80) return { text: `🍰 お菓子 × ${sn.eatenCount}`, tag: "限界ギチギチ!!", level: "high" };
+            if (pct >= 52) return { text: `🍰 お菓子 × ${sn.eatenCount}`, tag: "ホック悲鳴中！", level: "mid" };
+            if (pct >= 25) return { text: `🍰 お菓子 × ${sn.eatenCount}`, tag: "ぽっこり気味♪", level: "mid" };
+            return { text: `🍰 お菓子 × ${sn.eatenCount}`, tag: "余裕の別腹♪", level: "low" };
+          },
+
+          feedOneSnack(originX, originY, state, api, tensionGain) {
+            const sn = state.snack;
+            if (!sn || !state.alive) return;
+
+            sn.eatenCount += 1;
+            sn.chewTimer = 0.34;
+            sn.digestDelay = 2.8;
+            sn.bellyVel += 4.2;
+
+            state.tension = clamp(state.tension + tensionGain, 0, 1);
+            state.velY += 70;
+            state.velScaleX += 1.45;
+            state.velScaleY -= 1.35;
+
+            const emoji = pick(this.texts.snacks);
+            const side = originX >= api.centerX ? 1 : -1;
+            sn.flyingSnacks.push({
+              emoji,
+              progress: 0,
+              startX: clamp(originX, 40, api.viewW - 40),
+              startY: clamp(originY, 120, api.viewH - 120),
+              arcX: side * (25 + Math.random() * 35),
+              rot: (Math.random() - 0.5) * 1.4
+            });
+
+            api.incrementAction();
+            api.pulseSubHUD();
+            SoundEngine.playSnackEat(sn.eatenCount);
+
+            // お菓子のかけらパーティクル
+            const mouthY = api.centerY - api.baseRadius * 0.24;
+            for (let i = 0; i < 5; i++) {
+              const ang = Math.random() * Math.PI * 2;
+              const spd = 70 + Math.random() * 110;
+              api.addParticle({
+                kind: i === 0 ? "star" : "confetti",
+                x: api.centerX + (Math.random() - 0.5) * 26,
+                y: mouthY,
+                vx: Math.cos(ang) * spd,
+                vy: Math.sin(ang) * spd - 45,
+                size: 5 + Math.random() * 4,
+                rot: Math.random() * Math.PI,
+                vRot: (Math.random() - 0.5) * 12,
+                color: pick(["#ffd166", "#ff8fab", "#ffffff", "#f4a261"]),
+                gravity: 340,
+                maxLife: 0.36
+              });
+            }
+
+            // 限界が近いとホックからも軋み音＆スパーク
+            if (state.tension >= 0.58 && state.tension < 1) {
+              SoundEngine.playHookStrain(state.tension);
+              const waistY = api.centerY + api.baseRadius * 0.54;
+              for (let i = 0; i < 4; i++) {
+                const ang = Math.random() * Math.PI * 2;
+                const spd = 90 + Math.random() * 120;
+                api.addParticle({
+                  kind: "spark",
+                  x: api.centerX,
+                  y: waistY,
+                  vx: Math.cos(ang) * spd,
+                  vy: Math.sin(ang) * spd,
+                  size: 5 + Math.random() * 5,
+                  rot: ang,
+                  vRot: 0,
+                  color: pick(["#ffbe0b", "#ff2e4c", "#ffffff"]),
+                  gravity: 200,
+                  maxLife: 0.26
+                });
+              }
+            }
+
+            // 状態に応じたコミカル擬音
+            let pool = this.texts.eatWordsLow;
+            let col = "#e76f51";
+            if (state.tension >= 0.75) {
+              pool = this.texts.eatWordsHigh;
+              col = "#ff0054";
+            } else if (state.tension >= 0.42) {
+              pool = this.texts.eatWordsMid;
+              col = "#f77f00";
+            }
+            api.addPopup(
+              pick(pool),
+              clamp(originX + (Math.random() - 0.5) * 30, 75, api.viewW - 75),
+              Math.min(originY - 26, api.centerY - api.baseRadius * 0.65),
+              col,
+              state.tension >= 0.75 ? 32 : 28
+            );
+
+            if (state.tension >= 1) {
+              api.triggerBurst();
+            }
+          },
+
+          onTap(x, y, state, api) {
+            this.feedOneSnack(x, y, state, api, 0.095);
+          },
+
+          onHoldStart(x, y, state, api) {
+            state.snack.eatCooldown = 0;
+            state.snack.strainSoundTimer = 0.05;
+            this.feedOneSnack(x, y, state, api, 0.065);
+          },
+
+          onHoldMove() {},
+
+          onHoldUpdate(dt, state, api) {
+            const sn = state.snack;
+            sn.digestDelay = 2.8;
+            // 押し続けている間もお腹がじわじわ膨らみつつ、テンポよくお菓子を口に放り込む！
+            state.tension = clamp(state.tension + dt / (this.physics.holdDuration * 1.45), 0, 1);
+
+            sn.eatCooldown -= dt;
+            if (sn.eatCooldown <= 0 && state.tension < 1) {
+              sn.eatCooldown = lerp(0.24, 0.14, state.tension);
+              const side = Math.random() > 0.5 ? 1 : -1;
+              const sx = api.centerX + side * (api.baseRadius * (0.75 + Math.random() * 0.45));
+              const sy = api.centerY + (Math.random() - 0.2) * api.baseRadius * 0.7;
+              this.feedOneSnack(sx, sy, state, api, 0.048);
+            }
+
+            if (state.tension >= 0.5) {
+              sn.strainSoundTimer -= dt;
+              if (sn.strainSoundTimer <= 0 && state.alive) {
+                SoundEngine.playHookStrain(state.tension);
+                sn.strainSoundTimer = lerp(0.26, 0.09, (state.tension - 0.5) / 0.5);
+              }
+            }
+
+            if (state.tension >= 1 && state.alive) {
+              api.triggerBurst();
+            }
+          },
+
+          onHoldEnd() {},
+
+          onIdleUpdate(dt, state) {
+            const sn = state.snack;
+            if (!sn) return;
+            if (sn.digestDelay > 0) {
+              sn.digestDelay = Math.max(0, sn.digestDelay - dt);
+            } else if (state.tension > 0) {
+              state.tension = Math.max(0, state.tension - dt * this.physics.coolDownRate);
+            }
+          },
+
+          onPostPhysics(dt, state, api) {
+            const sn = state.snack;
+            if (!sn) return;
+
+            sn.chewTimer = Math.max(0, sn.chewTimer - dt);
+
+            // お腹のボヨンボヨン揺れバネ
+            const bAcc = -180 * sn.bellyJiggle - 7.5 * sn.bellyVel;
+            sn.bellyVel += bAcc * dt;
+            sn.bellyJiggle = clamp(sn.bellyJiggle + sn.bellyVel * dt, -0.35, 0.45);
+
+            // 口へ飛ぶお菓子のアニメーション
+            for (let i = sn.flyingSnacks.length - 1; i >= 0; i--) {
+              const fs = sn.flyingSnacks[i];
+              fs.progress += dt * 4.8;
+              if (fs.progress >= 1) {
+                sn.flyingSnacks.splice(i, 1);
+              }
+            }
+
+            // 弾け飛んだ金属ホックの弾道物理
+            if (sn.hookPopped) {
+              sn.hookVy += 980 * dt;
+              sn.hookX += sn.hookVx * dt;
+              sn.hookY += sn.hookVy * dt;
+              sn.hookRot += sn.hookVRot * dt;
+            }
+
+            if (!state.alive && !sn.overlayShown) {
+              sn.overlayDelay -= dt;
+              if (sn.overlayDelay <= 0) {
+                sn.overlayShown = true;
+                api.showBurstOverlay(sn.pendingOno, sn.pendingMsg, this.texts.respawnLabel);
+              }
+            }
+          },
+
+          onBurst(state, api) {
+            const sn = state.snack;
+            state.alive = false;
+            state.tension = 1;
+
+            // ホックがウエストから弾丸のように斜め上へ吹っ飛ぶ！
+            const waistY = api.centerY + api.baseRadius * 0.54;
+            sn.hookPopped = true;
+            sn.hookX = api.centerX;
+            sn.hookY = waistY;
+            const flyDir = Math.random() > 0.5 ? 1 : -1;
+            sn.hookVx = flyDir * (290 + Math.random() * 190);
+            sn.hookVy = -(620 + Math.random() * 180);
+            sn.hookRot = 0;
+            sn.hookVRot = flyDir * 24;
+
+            // 解放されたお腹がボヨンッと弾む！
+            sn.bellyVel = 14.5;
+            state.velY = -170;
+            state.velScaleX = 3.2;
+            state.velScaleY = -2.6;
+            state.screenShake = 16;
+
+            sn.overlayShown = false;
+            sn.overlayDelay = 0.68;
+            state.respawnReadyAt = performance.now() + 900;
+
+            SoundEngine.playHookPop();
+            api.pulseSubHUD();
+
+            // ウエスト位置から強烈な衝撃リング＋火花＋星エフェクト
+            api.addShockwave(api.centerX, waistY, 12, api.baseRadius * 1.55, 0.34, "#ff2e4c");
+            api.addShockwave(api.centerX, waistY, 8, api.baseRadius * 1.05, 0.25, "#ffd166");
+
+            const burstColors = ["#ffd166", "#ff2e4c", "#ff8fab", "#ffffff", "#4cc9f0"];
+            for (let i = 0; i < 36; i++) {
+              const ang = Math.random() * Math.PI * 2;
+              const spd = 160 + Math.random() * 420;
+              api.addParticle({
+                kind: i % 3 === 0 ? "star" : (i % 3 === 1 ? "spark" : "confetti"),
+                x: api.centerX + (Math.random() - 0.5) * 18,
+                y: waistY + (Math.random() - 0.5) * 12,
+                vx: Math.cos(ang) * spd,
+                vy: Math.sin(ang) * spd - 90,
+                size: 6 + Math.random() * 9,
+                rot: ang,
+                vRot: (Math.random() - 0.5) * 16,
+                color: pick(burstColors),
+                gravity: 560,
+                maxLife: 0.62 + Math.random() * 0.42
+              });
+            }
+
+            api.addPopup("パチンッ!! ブチッ!!", api.centerX, waistY - 26, "#ff2e4c", 36);
+            sn.pendingOno = this.texts.popOno;
+            sn.pendingMsg = pick(this.texts.popMessages);
+          },
+
+          render(ctx, state, env) {
+            const sn = state.snack;
+            if (!sn) return;
+            const { cx, cy, baseR, time } = env;
+            const pal = state.palette;
+            const tension = state.tension;
+            const popped = !state.alive;
+
+            // おかっぱ女子の頭〜ウエスト・スカートまで全身が綺麗に収まる比率
+            const unit = baseR * 0.74;
+            const idleFloat = state.alive ? Math.sin(time * 2.3) * 2.5 : 0;
+            const strainShake = state.alive && tension > 0.62 ? (tension - 0.62) * 11 : 0;
+            const sxShake = strainShake ? (Math.random() - 0.5) * strainShake : 0;
+            const syShake = strainShake ? (Math.random() - 0.5) * strainShake : 0;
+
+            const posX = cx + state.offsetX + sxShake;
+            const posY = cy - baseR * 0.04 + idleFloat + state.offsetY + syShake;
+
+            // お腹の膨らみ係数（食べるほどぽっこり、外れたらボヨンッとさらに解放！）
+            const bellyCurve = popped
+              ? 1.18 + sn.bellyJiggle * 0.45
+              : Math.pow(tension, 0.9) + sn.bellyJiggle * 0.16;
+
+            ctx.save();
+            ctx.translate(posX, posY);
+            ctx.rotate(state.rot);
+            ctx.scale(state.scaleX * state.spawnScale, state.scaleY * state.spawnScale);
+
+            const hairColor = "#24222c";
+            const hairHighlight = "rgba(255, 255, 255, 0.22)";
+            const skinColor = "#ffe2cc";
+            const skinShade = "#f7c7a7";
+
+            // 各パーツの基準Y座標
+            const headCy = -unit * 0.88;
+            const headR = unit * 0.84;
+            const shoulderY = unit * 0.04;
+            const waistY = unit * 0.78;
+            const skirtBottomY = unit * 1.56;
+
+            /* --- 1. 後ろ髪（ぱっつん内巻きおかっぱ） --- */
+            ctx.beginPath();
+            ctx.moveTo(-headR * 1.16, headCy + headR * 0.72);
+            ctx.bezierCurveTo(-headR * 1.24, headCy - headR * 0.3, -headR * 1.02, headCy - headR * 1.24, 0, headCy - headR * 1.24);
+            ctx.bezierCurveTo(headR * 1.02, headCy - headR * 1.24, headR * 1.24, headCy - headR * 0.3, headR * 1.16, headCy + headR * 0.72);
+            ctx.quadraticCurveTo(headR * 1.1, headCy + headR * 1.0, headR * 0.7, headCy + headR * 0.95);
+            ctx.lineTo(-headR * 0.7, headCy + headR * 0.95);
+            ctx.quadraticCurveTo(-headR * 1.1, headCy + headR * 1.0, -headR * 1.16, headCy + headR * 0.72);
+            ctx.closePath();
+            ctx.fillStyle = hairColor;
+            ctx.fill();
+            ctx.lineWidth = 4.2;
+            ctx.strokeStyle = "#181720";
+            ctx.stroke();
+
+            /* --- 2. 腕（お菓子をモグモグ食べる動き＆外れた後は慌ててお腹を押さえる！） --- */
+            const armWave = sn.chewTimer > 0 ? Math.sin((sn.chewTimer / 0.34) * Math.PI * 2) * 14 : 0;
+            const drawArm = (side) => {
+              ctx.save();
+              ctx.lineWidth = 3.8;
+              ctx.strokeStyle = "#2b2d42";
+              ctx.fillStyle = pal.top;
+
+              const sx = side * unit * 0.62;
+              const sy = shoulderY + unit * 0.14;
+              const ex = side * unit * (0.94 + bellyCurve * 0.12);
+              const ey = popped
+                ? waistY - unit * 0.04
+                : (sn.chewTimer > 0 && side === 1 ? headCy + headR * 0.65 - armWave : shoulderY + unit * 0.62);
+
+              ctx.beginPath();
+              ctx.moveTo(sx, sy);
+              ctx.quadraticCurveTo(side * unit * 1.06, sy + unit * 0.25, ex, ey);
+              ctx.lineWidth = unit * 0.28;
+              ctx.lineCap = "round";
+              ctx.strokeStyle = "#2b2d42";
+              ctx.stroke();
+
+              ctx.lineWidth = unit * 0.2;
+              ctx.strokeStyle = pal.top;
+              ctx.stroke();
+
+              // 小さな丸い手
+              ctx.beginPath();
+              ctx.arc(ex, ey, unit * 0.13, 0, Math.PI * 2);
+              ctx.fillStyle = skinColor;
+              ctx.fill();
+              ctx.lineWidth = 3.2;
+              ctx.strokeStyle = "#2b2d42";
+              ctx.stroke();
+              ctx.restore();
+            };
+            drawArm(-1);
+            drawArm(1);
+
+            /* --- 3. 上半身（トップス＋ぽっこり膨らむお腹！） --- */
+            const waistHalfW = unit * (0.64 + bellyCurve * 0.28);
+            const torsoBulge = unit * (0.04 + bellyCurve * 0.24);
+
+            ctx.beginPath();
+            ctx.moveTo(-unit * 0.56, shoulderY + unit * 0.08);
+            ctx.quadraticCurveTo(-unit * 0.25, shoulderY - unit * 0.06, 0, shoulderY - unit * 0.06);
+            ctx.quadraticCurveTo(unit * 0.25, shoulderY - unit * 0.06, unit * 0.56, shoulderY + unit * 0.08);
+            // 右わき腹（食べるほど外へ丸く膨らむ！）
+            ctx.bezierCurveTo(
+              unit * 0.72 + torsoBulge, shoulderY + unit * 0.35,
+              waistHalfW + torsoBulge * 0.5, waistY - unit * 0.12,
+              waistHalfW, waistY + unit * 0.06
+            );
+            ctx.lineTo(-waistHalfW, waistY + unit * 0.06);
+            // 左わき腹
+            ctx.bezierCurveTo(
+              -waistHalfW - torsoBulge * 0.5, waistY - unit * 0.12,
+              -unit * 0.72 - torsoBulge, shoulderY + unit * 0.35,
+              -unit * 0.56, shoulderY + unit * 0.08
+            );
+            ctx.closePath();
+            ctx.fillStyle = pal.top;
+            ctx.fill();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = "#2b2d42";
+            ctx.stroke();
+
+            // ぽっこりお腹の丸みを強調する陰影＆ハイライト（食べるほどくっきり！）
+            if (bellyCurve > 0.18) {
+              const bAlpha = clamp((bellyCurve - 0.18) / 0.7, 0, 1);
+              ctx.save();
+              ctx.globalAlpha = bAlpha;
+              // お腹の丸いふくらみライン
+              const bellyR = unit * (0.34 + bellyCurve * 0.2);
+              const bellyCy = waistY - unit * 0.18;
+              const bGrad = ctx.createRadialGradient(-bellyR * 0.25, bellyCy - bellyR * 0.25, 4, 0, bellyCy, bellyR * 1.15);
+              bGrad.addColorStop(0, "#ffffff");
+              bGrad.addColorStop(0.65, pal.top);
+              bGrad.addColorStop(1, "rgba(43, 45, 66, 0.12)");
+              ctx.beginPath();
+              ctx.ellipse(0, bellyCy, bellyR * 1.15, bellyR * 0.76, 0, 0, Math.PI * 2);
+              ctx.fillStyle = bGrad;
+              ctx.fill();
+
+              // 服のパツパツ張りジワ（放射状の小さな線）
+              ctx.strokeStyle = "rgba(43, 45, 66, 0.28)";
+              ctx.lineWidth = 2.4;
+              ctx.lineCap = "round";
+              [-1, 1].forEach((dir) => {
+                ctx.beginPath();
+                ctx.moveTo(dir * bellyR * 0.72, bellyCy - unit * 0.08);
+                ctx.quadraticCurveTo(dir * bellyR * 0.92, bellyCy + unit * 0.02, dir * bellyR * 0.85, bellyCy + unit * 0.16);
+                ctx.stroke();
+              });
+              ctx.restore();
+            }
+
+            // 可愛い襟＆リボン
+            ctx.beginPath();
+            ctx.moveTo(-unit * 0.28, shoulderY);
+            ctx.quadraticCurveTo(-unit * 0.12, shoulderY + unit * 0.26, 0, shoulderY + unit * 0.12);
+            ctx.quadraticCurveTo(unit * 0.12, shoulderY + unit * 0.26, unit * 0.28, shoulderY);
+            ctx.fillStyle = pal.collar;
+            ctx.fill();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = "#2b2d42";
+            ctx.stroke();
+
+            /* --- 4. ハイウエストスカート＆限界ホック!! --- */
+            const bandH = unit * 0.24;
+            const skirtTopW = waistHalfW * (popped ? 1.06 : 1.0);
+            const skirtBotW = unit * (0.98 + bellyCurve * 0.24);
+
+            // スカート本体（台形プリーツ）
+            ctx.beginPath();
+            ctx.moveTo(-skirtTopW, waistY + bandH * 0.85);
+            ctx.lineTo(skirtTopW, waistY + bandH * 0.85);
+            ctx.lineTo(skirtBotW, skirtBottomY);
+            ctx.quadraticCurveTo(0, skirtBottomY + unit * 0.1, -skirtBotW, skirtBottomY);
+            ctx.closePath();
+            ctx.fillStyle = pal.skirt;
+            ctx.fill();
+            ctx.lineWidth = 4.2;
+            ctx.strokeStyle = "#2b2d42";
+            ctx.stroke();
+
+            // プリーツ線
+            ctx.strokeStyle = pal.skirtShade;
+            ctx.lineWidth = 3;
+            [-0.58, -0.28, 0.28, 0.58].forEach((r) => {
+              ctx.beginPath();
+              ctx.moveTo(skirtTopW * r, waistY + bandH);
+              ctx.lineTo(skirtBotW * r * 1.05, skirtBottomY + unit * 0.02);
+              ctx.stroke();
+            });
+
+            // 中央の前立てライン
+            ctx.beginPath();
+            ctx.moveTo(0, waistY + bandH);
+            ctx.lineTo(0, skirtBottomY + unit * 0.04);
+            ctx.strokeStyle = "#2b2d42";
+            ctx.lineWidth = 2.8;
+            ctx.stroke();
+
+            // ウエストベルト帯（ホックが付いている最重要パーツ！）
+            const bandTop = waistY - bandH * 0.15;
+            const gapPull = popped
+              ? unit * 0.34
+              : (tension > 0.38 ? Math.pow((tension - 0.38) / 0.62, 1.35) * unit * 0.22 : 0);
+
+            if (!popped) {
+              // ベルト左右ベース
+              drawRoundedRect(ctx, -skirtTopW - 2, bandTop, (skirtTopW + 2) * 2, bandH, 7);
+              ctx.fillStyle = pal.skirtShade;
+              ctx.fill();
+              ctx.lineWidth = 4;
+              ctx.strokeStyle = "#2b2d42";
+              ctx.stroke();
+
+              // 引っ張られて少し開いてきた隙間からトップスの生地が覗く演出
+              if (gapPull > 1.5) {
+                ctx.beginPath();
+                ctx.moveTo(-gapPull * 0.72, bandTop + 3);
+                ctx.lineTo(gapPull * 0.72, bandTop + 3);
+                ctx.lineTo(gapPull * 0.28, bandTop + bandH - 3);
+                ctx.lineTo(-gapPull * 0.28, bandTop + bandH - 3);
+                ctx.closePath();
+                ctx.fillStyle = pal.top;
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = "#2b2d42";
+                ctx.stroke();
+              }
+
+              // 限界で震える金属ホック（左のフック＋右の留め具＋ボタン）
+              const hookShakeX = tension > 0.55 ? (Math.random() - 0.5) * (tension - 0.55) * 10 : 0;
+              const hookShakeY = tension > 0.55 ? (Math.random() - 0.5) * (tension - 0.55) * 7 : 0;
+              const hCy = bandTop + bandH * 0.5 + hookShakeY;
+              const metalColor = tension > 0.72 ? mixColor("#e2e8f0", "#ff3b5c", (tension - 0.72) / 0.28) : "#e9eef5";
+
+              ctx.save();
+              ctx.translate(hookShakeX, 0);
+
+              // 右の受け金具（バー）
+              ctx.strokeStyle = "#2b2d42";
+              ctx.lineWidth = 6;
+              ctx.lineCap = "round";
+              ctx.beginPath();
+              ctx.moveTo(gapPull * 0.68 + 6, hCy - 7);
+              ctx.lineTo(gapPull * 0.68 + 6, hCy + 7);
+              ctx.stroke();
+              ctx.strokeStyle = metalColor;
+              ctx.lineWidth = 3;
+              ctx.stroke();
+
+              // 左から右へ必死に引っ張られるフック金具（コの字フック）
+              ctx.strokeStyle = "#2b2d42";
+              ctx.lineWidth = 6.5;
+              ctx.beginPath();
+              ctx.moveTo(-gapPull * 0.68 - 9, hCy);
+              ctx.lineTo(gapPull * 0.68 + 5, hCy);
+              ctx.stroke();
+              ctx.strokeStyle = metalColor;
+              ctx.lineWidth = 3.4;
+              ctx.stroke();
+
+              // 左の丸ボタン（ホック留めボタン）
+              ctx.beginPath();
+              ctx.arc(-gapPull * 0.68 - 11, hCy, 7.5, 0, Math.PI * 2);
+              ctx.fillStyle = metalColor;
+              ctx.fill();
+              ctx.lineWidth = 2.8;
+              ctx.strokeStyle = "#2b2d42";
+              ctx.stroke();
+
+              // ボタンの縫い穴2つ
+              ctx.fillStyle = "#2b2d42";
+              ctx.beginPath();
+              ctx.arc(-gapPull * 0.68 - 13, hCy, 1.4, 0, Math.PI * 2);
+              ctx.arc(-gapPull * 0.68 - 9, hCy, 1.4, 0, Math.PI * 2);
+              ctx.fill();
+
+              // ギチギチ緊張ライン（60%超えでピキピキ光る！）
+              if (tension > 0.52) {
+                const sAlpha = clamp((tension - 0.52) / 0.35, 0, 1);
+                ctx.globalAlpha = sAlpha;
+                ctx.strokeStyle = tension > 0.78 ? "#ff2e4c" : "#ff9f1c";
+                ctx.lineWidth = 3;
+                const pulse = 1 + Math.sin(time * 32) * 0.16;
+                for (let k = 0; k < 6; k++) {
+                  const ang = (k / 6) * Math.PI * 2 + 0.3;
+                  const r0 = (16 + gapPull * 0.4) * pulse;
+                  const r1 = (26 + gapPull * 0.5) * pulse;
+                  ctx.beginPath();
+                  ctx.moveTo(Math.cos(ang) * r0, hCy + Math.sin(ang) * r0 * 0.75);
+                  ctx.lineTo(Math.cos(ang) * r1, hCy + Math.sin(ang) * r1 * 0.75);
+                  ctx.stroke();
+                }
+              }
+
+              ctx.restore();
+            } else {
+              // ホックが弾け飛んだ後：ベルトがパカッと左右に開き、解放されたぽっこりお腹がボヨンッと前に！
+              // 中からトップスの丸い裾が可愛く覗く（完全健全コミカル表現）
+              ctx.beginPath();
+              ctx.ellipse(0, bandTop + bandH * 0.25, unit * 0.42, unit * 0.28, 0, 0, Math.PI * 2);
+              ctx.fillStyle = pal.top;
+              ctx.fill();
+              ctx.lineWidth = 3.5;
+              ctx.strokeStyle = "#2b2d42";
+              ctx.stroke();
+
+              // 左ベルト（少しめくれて垂れる）
+              ctx.save();
+              ctx.translate(-gapPull * 0.65, bandTop);
+              ctx.rotate(-0.18);
+              drawRoundedRect(ctx, -(skirtTopW - gapPull * 0.5), 0, skirtTopW - gapPull * 0.45, bandH, 6);
+              ctx.fillStyle = pal.skirtShade;
+              ctx.fill();
+              ctx.lineWidth = 3.8;
+              ctx.strokeStyle = "#2b2d42";
+              ctx.stroke();
+              ctx.restore();
+
+              // 右ベルト（少しめくれて垂れる）
+              ctx.save();
+              ctx.translate(gapPull * 0.65, bandTop);
+              ctx.rotate(0.18);
+              drawRoundedRect(ctx, 0, 0, skirtTopW - gapPull * 0.45, bandH, 6);
+              ctx.fillStyle = pal.skirtShade;
+              ctx.fill();
+              ctx.lineWidth = 3.8;
+              ctx.strokeStyle = "#2b2d42";
+              ctx.stroke();
+              ctx.restore();
+
+              // ホックがあった場所からほわほわ湯気（解放感！）
+              ctx.save();
+              ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+              ctx.lineWidth = 3.5;
+              ctx.lineCap = "round";
+              for (let k = -1; k <= 1; k++) {
+                const wx = k * 16;
+                const wy = bandTop - 8 - ((time * 32 + (k + 1) * 9) % 24);
+                ctx.beginPath();
+                ctx.moveTo(wx, wy + 12);
+                ctx.quadraticCurveTo(wx + 5, wy + 6, wx, wy);
+                ctx.stroke();
+              }
+              ctx.restore();
+            }
+
+            /* --- 5. 首と顔（おかっぱ女子の可愛い顔＋表情変化） --- */
+            drawRoundedRect(ctx, -headR * 0.2, headCy + headR * 0.72, headR * 0.4, headR * 0.42, 10);
+            ctx.fillStyle = skinShade;
+            ctx.fill();
+            ctx.lineWidth = 3.4;
+            ctx.strokeStyle = "#2b2d42";
+            ctx.stroke();
+
+            // もぐもぐ中はほっぺがぷくっと動く
+            const chewPuff = sn.chewTimer > 0 ? Math.abs(Math.sin((sn.chewTimer / 0.34) * Math.PI * 2)) * 0.08 : 0;
+
+            ctx.beginPath();
+            ctx.moveTo(0, headCy - headR * 0.9);
+            ctx.bezierCurveTo(
+              headR * 0.96, headCy - headR * 0.9,
+              headR * (0.98 + chewPuff), headCy + headR * 0.15,
+              headR * (0.86 + chewPuff * 0.8), headCy + headR * 0.56
+            );
+            ctx.quadraticCurveTo(headR * 0.56, headCy + headR * 0.92, 0, headCy + headR * 0.93);
+            ctx.quadraticCurveTo(-headR * 0.56, headCy + headR * 0.92, -headR * (0.86 + chewPuff * 0.8), headCy + headR * 0.56);
+            ctx.bezierCurveTo(
+              -headR * (0.98 + chewPuff), headCy + headR * 0.15,
+              -headR * 0.96, headCy - headR * 0.9,
+              0, headCy - headR * 0.9
+            );
+            ctx.closePath();
+
+            const faceTint = popped
+              ? "#ffcfc2"
+              : (tension > 0.6 ? mixColor(skinColor, "#ffc2be", (tension - 0.6) * 0.8) : skinColor);
+            ctx.fillStyle = faceTint;
+            ctx.fill();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = "#2b2d42";
+            ctx.stroke();
+
+            // 表情パーツ
+            const eyeY = headCy + headR * 0.06;
+            const eyeX = headR * 0.36;
+            const mouthY = headCy + headR * 0.47;
+
+            // チーク（弾け飛んだ後は真っ赤に照れる！）
+            ctx.fillStyle = popped ? "rgba(255, 77, 109, 0.58)" : "rgba(255, 118, 148, 0.4)";
+            ctx.beginPath();
+            ctx.ellipse(-headR * 0.5, headCy + headR * 0.28, headR * 0.16, headR * 0.1, 0, 0, Math.PI * 2);
+            ctx.ellipse(headR * 0.5, headCy + headR * 0.28, headR * 0.16, headR * 0.1, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = "#2b2d42";
+            ctx.fillStyle = "#2b2d42";
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+
+            if (popped) {
+              // ホックが飛んだ直後の「真っ赤＆びっくり恥ずかし顔！」
+              ctx.lineWidth = 3.8;
+              [-eyeX, eyeX].forEach((ex) => {
+                ctx.beginPath();
+                ctx.arc(ex, eyeY, 11.5, 0, Math.PI * 2);
+                ctx.fillStyle = "#ffffff";
+                ctx.fill();
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(ex, eyeY, 3.6, 0, Math.PI * 2);
+                ctx.fillStyle = "#2b2d42";
+                ctx.fill();
+              });
+              // アワアワ震える口
+              ctx.beginPath();
+              ctx.moveTo(-14, mouthY + 4);
+              ctx.quadraticCurveTo(-7, mouthY - 5, 0, mouthY + 4);
+              ctx.quadraticCurveTo(7, mouthY - 5, 14, mouthY + 4);
+              ctx.stroke();
+            } else if (tension >= 0.72) {
+              // ホック限界間近：焦りつつも食べちゃう「＞ ＜」顔！
+              ctx.lineWidth = 4;
+              ctx.beginPath();
+              ctx.moveTo(-eyeX - 10, eyeY - 8);
+              ctx.lineTo(-eyeX + 8, eyeY);
+              ctx.lineTo(-eyeX - 10, eyeY + 8);
+              ctx.moveTo(eyeX + 10, eyeY - 8);
+              ctx.lineTo(eyeX - 8, eyeY);
+              ctx.lineTo(eyeX + 10, eyeY + 8);
+              ctx.stroke();
+
+              // 大きな口 or 歯を食いしばる口
+              if (sn.chewTimer > 0.16) {
+                ctx.beginPath();
+                ctx.ellipse(0, mouthY, 12, 10, 0, 0, Math.PI * 2);
+                ctx.fillStyle = "#e63960";
+                ctx.fill();
+                ctx.lineWidth = 3;
+                ctx.stroke();
+              } else {
+                ctx.beginPath();
+                ctx.moveTo(-14, mouthY + 2);
+                ctx.quadraticCurveTo(0, mouthY - 6, 14, mouthY + 2);
+                ctx.stroke();
+              }
+            } else if (sn.chewTimer > 0) {
+              // モグモグ幸せ顔（^ ^）＋パクッと口！
+              ctx.lineWidth = 4;
+              [-eyeX, eyeX].forEach((ex) => {
+                ctx.beginPath();
+                ctx.arc(ex, eyeY + 4, 11, 1.15 * Math.PI, 1.85 * Math.PI);
+                ctx.stroke();
+              });
+              if (sn.chewTimer > 0.18) {
+                // あーん！大きく開いた口
+                ctx.beginPath();
+                ctx.ellipse(0, mouthY, 13, 12, 0, 0, Math.PI * 2);
+                ctx.fillStyle = "#e63960";
+                ctx.fill();
+                ctx.lineWidth = 3;
+                ctx.stroke();
+              } else {
+                // ほっぺ膨らませてモグモグ
+                ctx.beginPath();
+                ctx.moveTo(-11, mouthY);
+                ctx.quadraticCurveTo(0, mouthY + 9, 11, mouthY);
+                ctx.stroke();
+              }
+            } else {
+              // 通常時：お菓子待ちのキラキラ瞳＆にっこり口
+              [-eyeX, eyeX].forEach((ex) => {
+                ctx.beginPath();
+                ctx.ellipse(ex, eyeY, 9.5, 11.5, 0, 0, Math.PI * 2);
+                ctx.fillStyle = "#2b2d42";
+                ctx.fill();
+
+                ctx.fillStyle = "#ffffff";
+                ctx.beginPath();
+                ctx.arc(ex - 3, eyeY - 4, 3.4, 0, Math.PI * 2);
+                ctx.arc(ex + 3, eyeY + 4, 1.6, 0, Math.PI * 2);
+                ctx.fill();
+              });
+              ctx.lineWidth = 3.5;
+              ctx.beginPath();
+              ctx.arc(0, mouthY - 4, 11, 0.15 * Math.PI, 0.85 * Math.PI);
+              ctx.stroke();
+            }
+
+            /* --- 6. おかっぱの前髪＆サイドの髪 --- */
+            ctx.fillStyle = hairColor;
+            ctx.strokeStyle = "#181720";
+            ctx.lineWidth = 3.8;
+
+            // 左サイド
+            ctx.beginPath();
+            ctx.moveTo(-headR * 0.86, headCy - headR * 0.62);
+            ctx.bezierCurveTo(-headR * 1.16, headCy - headR * 0.1, -headR * 1.14, headCy + headR * 0.58, -headR * 0.72, headCy + headR * 0.94);
+            ctx.quadraticCurveTo(-headR * 0.76, headCy + headR * 0.48, -headR * 0.82, headCy - headR * 0.15);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // 右サイド
+            ctx.beginPath();
+            ctx.moveTo(headR * 0.86, headCy - headR * 0.62);
+            ctx.bezierCurveTo(headR * 1.16, headCy - headR * 0.1, headR * 1.14, headCy + headR * 0.58, headR * 0.72, headCy + headR * 0.94);
+            ctx.quadraticCurveTo(headR * 0.76, headCy + headR * 0.48, headR * 0.82, headCy - headR * 0.15);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // ぱっつん前髪
+            const bangY = headCy - headR * 0.22;
+            ctx.beginPath();
+            ctx.moveTo(-headR * 0.92, headCy - headR * 0.35);
+            ctx.quadraticCurveTo(-headR * 0.92, headCy - headR * 1.15, 0, headCy - headR * 1.16);
+            ctx.quadraticCurveTo(headR * 0.92, headCy - headR * 1.15, headR * 0.92, headCy - headR * 0.35);
+            ctx.lineTo(headR * 0.84, bangY);
+            ctx.lineTo(headR * 0.36, bangY + 2);
+            ctx.lineTo(headR * 0.31, bangY - 10);
+            ctx.lineTo(headR * 0.26, bangY + 2);
+            ctx.lineTo(-headR * 0.24, bangY + 2);
+            ctx.lineTo(-headR * 0.29, bangY - 10);
+            ctx.lineTo(-headR * 0.34, bangY + 2);
+            ctx.lineTo(-headR * 0.84, bangY);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // 天使の輪ハイライト
+            ctx.save();
+            ctx.strokeStyle = hairHighlight;
+            ctx.lineWidth = 6.5;
+            ctx.lineCap = "round";
+            ctx.beginPath();
+            ctx.arc(0, headCy - headR * 0.2, headR * 0.68, 1.2 * Math.PI, 1.46 * Math.PI);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(0, headCy - headR * 0.2, headR * 0.68, 1.56 * Math.PI, 1.76 * Math.PI);
+            ctx.stroke();
+            ctx.restore();
+
+            // ヘアピン
+            ctx.save();
+            ctx.translate(-headR * 0.54, headCy - headR * 0.44);
+            ctx.rotate(-0.22);
+            drawRoundedRect(ctx, -13, -3.5, 26, 7, 3.5);
+            ctx.fillStyle = pal.pin;
+            ctx.fill();
+            ctx.lineWidth = 2.4;
+            ctx.strokeStyle = "#2b2d42";
+            ctx.stroke();
+            ctx.restore();
+
+            // 焦りの冷や汗（ホックがキツくなってきたら＆弾けた後）
+            if (tension > 0.55 || popped) {
+              ctx.save();
+              const dropY = headCy - headR * 0.1 + ((time * 65) % 18);
+              ctx.fillStyle = "#4cc9f0";
+              ctx.strokeStyle = "#2b2d42";
+              ctx.lineWidth = 2.2;
+              ctx.beginPath();
+              ctx.moveTo(headR * 0.72, dropY - 9);
+              ctx.quadraticCurveTo(headR * 0.82, dropY + 4, headR * 0.72, dropY + 9);
+              ctx.quadraticCurveTo(headR * 0.62, dropY + 4, headR * 0.72, dropY - 9);
+              ctx.fill();
+              ctx.stroke();
+              ctx.restore();
+            }
+
+            /* --- 7. 限界ホックの漫画風ズームアップ枠（55%以上で右脇に表示！） --- */
+            if (state.alive && tension >= 0.55) {
+              const zAlpha = clamp((tension - 0.55) / 0.2, 0, 1);
+              const zoomR = unit * 0.46;
+              const zoomX = Math.min(unit * 1.48, (env.viewW * 0.46) - zoomR);
+              const zoomY = waistY - unit * 0.16;
+              const zPull = clamp((tension - 0.5) / 0.5, 0, 1);
+              const zShakeX = (Math.random() - 0.5) * (2 + zPull * 7);
+              const zShakeY = (Math.random() - 0.5) * (2 + zPull * 5);
+
+              ctx.save();
+              ctx.globalAlpha = zAlpha;
+
+              // リード線（ウエストのホック→ズーム円）
+              ctx.beginPath();
+              ctx.moveTo(14, bandTop + bandH * 0.5);
+              ctx.lineTo(zoomX - zoomR * 0.85, zoomY + zoomR * 0.2);
+              ctx.strokeStyle = "#2b2d42";
+              ctx.lineWidth = 2.8;
+              ctx.setLineDash([5, 4]);
+              ctx.stroke();
+              ctx.setLineDash([]);
+
+              // ズーム円の背景
+              ctx.save();
+              ctx.translate(zoomX + zShakeX, zoomY + zShakeY);
+              ctx.beginPath();
+              ctx.arc(0, 0, zoomR, 0, Math.PI * 2);
+              ctx.fillStyle = zPull > 0.65 ? "#fff0f3" : "#ffffff";
+              ctx.fill();
+              ctx.save();
+              ctx.clip();
+
+              // 拡大ベルト左右
+              const zGap = 4 + zPull * 16;
+              ctx.fillStyle = pal.skirtShade;
+              ctx.fillRect(-zoomR - 4, -14, zoomR + 4 - zGap * 0.5, 28);
+              ctx.fillRect(zGap * 0.5, -14, zoomR + 4, 28);
+              ctx.strokeStyle = "#2b2d42";
+              ctx.lineWidth = 3;
+              ctx.strokeRect(-zoomR - 4, -14, zoomR + 4 - zGap * 0.5, 28);
+              ctx.strokeRect(zGap * 0.5, -14, zoomR + 4, 28);
+
+              // 拡大された金属ホック（限界でグニャッとたわむ！）
+              const metalZ = zPull > 0.55 ? mixColor("#dee2e6", "#ff2e4c", (zPull - 0.55) / 0.45) : "#e9ecef";
+              // 右受けバー
+              ctx.lineWidth = 7;
+              ctx.strokeStyle = "#2b2d42";
+              ctx.lineCap = "round";
+              ctx.beginPath();
+              ctx.moveTo(zGap * 0.5 + 8, -10);
+              ctx.lineTo(zGap * 0.5 + 8, 10);
+              ctx.stroke();
+              ctx.lineWidth = 3.6;
+              ctx.strokeStyle = metalZ;
+              ctx.stroke();
+
+              // 必死に引っかかるフック（しなり表現）
+              ctx.lineWidth = 8;
+              ctx.strokeStyle = "#2b2d42";
+              ctx.beginPath();
+              ctx.moveTo(-zGap * 0.5 - 12, 0);
+              ctx.quadraticCurveTo(0, -zPull * 6, zGap * 0.5 + 7, 0);
+              ctx.stroke();
+              ctx.lineWidth = 4.2;
+              ctx.strokeStyle = metalZ;
+              ctx.stroke();
+
+              // ズーム枠内のギチチ文字
+              ctx.font = `900 ${Math.round(zoomR * 0.34)}px sans-serif`;
+              ctx.textAlign = "center";
+              ctx.fillStyle = "#ff2e4c";
+              ctx.fillText(zPull > 0.72 ? "限界!!" : "ギチチ…", 0, -zoomR * 0.48);
+
+              ctx.restore();
+              // ズーム円の太枠
+              ctx.beginPath();
+              ctx.arc(0, 0, zoomR, 0, Math.PI * 2);
+              ctx.lineWidth = 4;
+              ctx.strokeStyle = zPull > 0.65 ? "#ff2e4c" : "#2b2d42";
+              ctx.stroke();
+              ctx.restore();
+
+              ctx.restore();
+            }
+
+            ctx.restore();
+
+            /* --- 8. ワールド座標：口へ飛び込むお菓子 --- */
+            const worldMouthX = posX;
+            const worldMouthY = posY + (headCy + headR * 0.47) * state.scaleY;
+            for (const fs of sn.flyingSnacks) {
+              const p = fs.progress;
+              const inv = 1 - p;
+              const ctrlX = (fs.startX + worldMouthX) * 0.5 + fs.arcX;
+              const ctrlY = Math.min(fs.startY, worldMouthY) - 65;
+              const fx = inv * inv * fs.startX + 2 * inv * p * ctrlX + p * p * worldMouthX;
+              const fy = inv * inv * fs.startY + 2 * inv * p * ctrlY + p * p * worldMouthY;
+              const fScale = lerp(1.15, 0.45, p);
+
+              ctx.save();
+              ctx.translate(fx, fy);
+              ctx.rotate(fs.rot + p * 5);
+              ctx.scale(fScale, fScale);
+              ctx.font = "34px sans-serif";
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.fillText(fs.emoji, 0, 0);
+              ctx.restore();
+            }
+
+            /* --- 9. ワールド座標：弾け飛んだ金属ホック＆ボタン --- */
+            if (sn.hookPopped && sn.hookY < env.viewH + 120 && sn.hookX > -120 && sn.hookX < env.viewW + 120) {
+              ctx.save();
+              ctx.translate(sn.hookX, sn.hookY);
+              ctx.rotate(sn.hookRot);
+
+              // 光のスピード線
+              ctx.strokeStyle = "rgba(255, 209, 102, 0.85)";
+              ctx.lineWidth = 3;
+              ctx.beginPath();
+              ctx.moveTo(-26, -6);
+              ctx.lineTo(-8, -3);
+              ctx.moveTo(-24, 6);
+              ctx.lineTo(-8, 3);
+              ctx.stroke();
+
+              // 飛んでいく金属ホック＋丸ボタン
+              ctx.strokeStyle = "#2b2d42";
+              ctx.lineWidth = 6.5;
+              ctx.lineCap = "round";
+              ctx.beginPath();
+              ctx.moveTo(-6, 0);
+              ctx.lineTo(14, 0);
+              ctx.lineTo(14, 7);
+              ctx.stroke();
+              ctx.strokeStyle = "#e9eef5";
+              ctx.lineWidth = 3.2;
+              ctx.stroke();
+
+              ctx.beginPath();
+              ctx.arc(-8, 0, 9.5, 0, Math.PI * 2);
+              ctx.fillStyle = "#f1f5f9";
+              ctx.fill();
+              ctx.lineWidth = 3;
+              ctx.strokeStyle = "#2b2d42";
+              ctx.stroke();
+
+              ctx.fillStyle = "#2b2d42";
+              ctx.beginPath();
+              ctx.arc(-10.5, 0, 1.8, 0, Math.PI * 2);
+              ctx.arc(-5.5, 0, 1.8, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.restore();
+            }
+          }
         }
       };
 
-      const OBJECT_ORDER = ["balloon", "soda", "gum", "pet"];
+      const OBJECT_ORDER = ["balloon", "soda", "gum", "pet", "snack"];
 
       /* =========================================================
        * 4. アプリ状態管理・DOM要素
@@ -4077,7 +5310,7 @@
       const STORAGE_KEY_V2 = "stress_pop_stats_v2";
       const STORAGE_KEY_V1 = "stress_balloon_stats_v1";
 
-      let currentObjectId = "pet";
+      let currentObjectId = "snack";
       const getCurrentObject = () => OBJECT_CATALOG[currentObjectId];
 
       // キャラごとの累計カウント
@@ -4085,7 +5318,8 @@
         balloon: { action: 0, burst: 0 },
         soda: { action: 0, burst: 0 },
         gum: { action: 0, burst: 0 },
-        pet: { action: 0, burst: 0 }
+        pet: { action: 0, burst: 0 },
+        snack: { action: 0, burst: 0 }
       };
 
       function loadStats() {
@@ -4185,7 +5419,8 @@
         screenShake: 0,
         soda: null,
         gum: null,
-        pet: null
+        pet: null,
+        snack: null
       };
 
       const popups = [];
@@ -4343,6 +5578,7 @@
         state.soda = null;
         state.gum = null;
         state.pet = null;
+        state.snack = null;
 
         if (obj.initExtra) obj.initExtra(state);
 
@@ -4363,7 +5599,7 @@
         currentObjectId = newId;
         const obj = getCurrentObject();
 
-        document.body.classList.remove("mode-balloon", "mode-soda", "mode-gum", "mode-pet");
+        document.body.classList.remove("mode-balloon", "mode-soda", "mode-gum", "mode-pet", "mode-snack");
         if (obj.bodyClass) document.body.classList.add(obj.bodyClass);
 
         for (const btn of charSwitcherEl.querySelectorAll(".char-tab")) {
@@ -4559,7 +5795,7 @@
           gaugeLabelEl.textContent = obj.hud.gaugeIdle;
         }
 
-        if (currentObjectId === "pet") {
+        if (currentObjectId === "pet" || currentObjectId === "snack") {
           updateSubHUD();
         }
         if (state.alive && state.tension > 0.38) {
@@ -4673,12 +5909,13 @@
         }
 
         // 地面のやわらかい影
-        if (state.alive || currentObjectId === "soda" || currentObjectId === "gum" || currentObjectId === "pet") {
+        if (state.alive || currentObjectId === "soda" || currentObjectId === "gum" || currentObjectId === "pet" || currentObjectId === "snack") {
           const shadowScale = clamp(1 - state.offsetY / 420, 0.65, 1.25) * state.spawnScale;
           let shadowY = centerY + baseRadius * 1.62;
           if (currentObjectId === "soda") shadowY = centerY + baseRadius * 1.18;
           else if (currentObjectId === "gum") shadowY = centerY + baseRadius * 1.24;
           else if (currentObjectId === "pet") shadowY = centerY + baseRadius * 1.1;
+          else if (currentObjectId === "snack") shadowY = centerY + baseRadius * 1.24;
 
           ctx.save();
           ctx.beginPath();
